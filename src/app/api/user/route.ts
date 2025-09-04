@@ -60,10 +60,14 @@ export async function GET(request: NextRequest) {
         const internshipsCollection = db.collection('Internship');
         const companiesCollection = db.collection('Company');
         
-        // First try to find applications by user ID
-        let mongoApps = await applicationsCollection.find({ userId: user.id }).toArray();
-        console.log('MongoDB applications found for user ID:', mongoApps.length);
-        
+        // Try both string and ObjectId forms of user ID
+        const userIdStr = user.id;
+        let userIdObj: ObjectId | null = null;
+        try { userIdObj = new ObjectId(user.id); } catch {}
+        const userIdVariants = userIdObj ? [userIdStr, userIdObj] : [userIdStr];
+        console.log('Checking MongoDB applications for userId variants:', userIdVariants);
+        let mongoApps = await applicationsCollection.find({ userId: { $in: userIdVariants.map(String) } }).toArray();
+        console.log('MongoDB applications found for userId variants:', mongoApps.length);
         // If no applications found by user ID, try to find by email
         if (mongoApps.length === 0) {
           const mongoUser = await db.collection('User').findOne({ email: session.user.email });

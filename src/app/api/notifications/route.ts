@@ -13,24 +13,38 @@ export async function GET(request: NextRequest) {
     }
     const user = await prisma.user.findUnique({ where: { email: session.user.email } });
     if (!user) return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
+    let prismaNotifications: any[] = [];
+    let mongoNotifications: any[] = [];
+    // Try Prisma first
     try {
       if ((prisma as any).notification) {
-        const notifications = await (prisma as any).notification.findMany({ where: { userId: user.id }, orderBy: { createdAt: 'desc' } });
-        return NextResponse.json({ success: true, data: notifications });
+        prismaNotifications = await (prisma as any).notification.findMany({ where: { userId: user.id }, orderBy: { createdAt: 'desc' } });
+        console.log('Prisma notifications:', prismaNotifications.length);
       }
-      throw new Error('Notification model unavailable');
-    } catch {
-      // Mongo fallback
+    } catch (prismaError) {
+      console.log('Prisma notification fetch failed:', prismaError);
+    }
+    // Always check MongoDB as well
+    try {
       const client = new MongoClient(process.env.DATABASE_URL!);
       await client.connect();
       const url = new URL(process.env.DATABASE_URL!);
       const dbName = (url.pathname || '').replace(/^\//, '') || 'onlyinternship';
       const db = client.db(dbName);
       const notifsCol = db.collection('Notification');
-      const notifications = await notifsCol.find({ userId: user.id }).sort({ createdAt: -1 }).toArray();
+      mongoNotifications = await notifsCol.find({ userId: user.id }).sort({ createdAt: -1 }).toArray();
+      console.log('MongoDB notifications:', mongoNotifications.length);
       await client.close();
-      return NextResponse.json({ success: true, data: notifications.map((n: any) => ({ ...n, id: String(n._id) })) });
+    } catch (mongoError) {
+      console.log('MongoDB notification fetch failed:', mongoError);
     }
+    // Merge and deduplicate notifications by id
+    const notifMap = new Map();
+    [...prismaNotifications, ...mongoNotifications.map((n: any) => ({ ...n, id: String(n._id) }))].forEach((notif: any) => {
+      notifMap.set(notif.id, notif);
+    });
+    const mergedNotifications = Array.from(notifMap.values()).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return NextResponse.json({ success: true, data: mergedNotifications });
   } catch (error) {
     console.error('Error fetching notifications:', error);
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });

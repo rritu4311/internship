@@ -10,6 +10,7 @@ import {
   CheckCircleIcon,
   XCircleIcon
 } from '@heroicons/react/24/outline';
+import Header from '@/components/Header';
 
 interface Notification {
   id: string;
@@ -150,9 +151,11 @@ export default function NotificationsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <Header />
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
+        <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white mb-10 text-center tracking-tight">Notifications</h1>
         {/* Header */}
-        <div className="mb-8">
+        <div className="mb-12 pb-2 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center">
