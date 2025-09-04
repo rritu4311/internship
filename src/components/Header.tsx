@@ -1,0 +1,242 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import Image from 'next/image';
+import { signIn, signOut, useSession } from 'next-auth/react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  MagnifyingGlassIcon, 
+  Bars3Icon, 
+  XMarkIcon,
+  UserCircleIcon,
+  BellIcon,
+  SunIcon,
+  MoonIcon,
+  Cog6ToothIcon,
+  HomeIcon
+} from '@heroicons/react/24/outline';
+import { useTheme } from '@/contexts/ThemeContext';
+
+interface HeaderProps {
+  onSearch?: (query: string) => void;
+}
+
+export default function Header({ onSearch }: HeaderProps) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [isScrolled, setIsScrolled] = useState(false);
+  const { theme } = useTheme();
+  const { data: session } = useSession();
+
+  // Handle scroll effect
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (onSearch && searchQuery.trim()) {
+      onSearch(searchQuery.trim());
+    }
+  };
+
+  const navigation = [
+    { name: 'Dashboard', href: '/' },
+    { name: 'Internships', href: '/internships' },
+    { name: 'Companies', href: '/companies' },
+    //{ name: 'Resources', href: '/resources' },
+    { name: 'About', href: '/about' },
+  ];
+
+  return (
+    <>
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        isScrolled 
+          ? 'bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-soft' 
+          : 'bg-white dark:bg-gray-900'
+      }`}>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            {/* Logo */}
+            <Link href="/" className="flex items-center space-x-2">
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                className="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center"
+              >
+              </motion.div>
+              <span className="text-xl font-bold text-gray-900 dark:text-white" style={{ marginRight:'3rem',marginLeft:'-3.6rem' }}>
+                OnlyInternship.in
+              </span>
+            </Link>
+
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center space-x-8">
+              {navigation.map((item) => (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className="flex items-center space-x-1 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
+                >
+                  {item.icon && <item.icon className="w-4 h-4" />}
+                  <span>{item.name}</span>
+                </Link>
+              ))}
+            </nav>
+
+            {/* Right side actions */}
+            <div className="flex items-center space-x-4">
+              {/* Desktop Search */}
+              <div className="hidden lg:block">
+                <form onSubmit={handleSearch}>
+                  <div className="relative">
+                    <MagnifyingGlassIcon className="absolute left-8 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="text"
+                      style={{ marginLeft:'1rem' }}
+                      placeholder="Search internships..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="w-64 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors"
+                    />
+                  </div>
+                </form>
+              </div>
+
+              {/* Google Sign In/Out */}
+              {session ? (
+                <button 
+                  onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+                  style={{ width:'7rem' }}
+                  className="flex items-center space-x-1 p-2 bg-red-100 dark:bg-red-900/30 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-800/40 transition-colors"
+                >
+                  <Image src="/google.svg" alt="Google Sign Out" width={20} height={20} />
+                  <span className="text-sm font-medium">Sign Out</span>
+                </button>
+              ) : (
+                <button 
+                  onClick={() => signIn('google')}
+                  className="flex items-center space-x-1 p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-800/40 transition-colors"
+                >
+                  <Image src="/google.svg" alt="Google Sign In" width={20} height={20} />
+                  <span className="text-sm font-medium">Sign In</span>
+                </button>
+              )}
+
+              {/* Notifications */}
+              <button className="p-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                <BellIcon className="w-5 h-5" />
+              </button>
+
+              {/* User menu */}
+              <div className="hidden md:flex items-center space-x-2">
+                <Link
+                  href="/profile"
+                  className="flex items-center space-x-2 px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                >
+                  <UserCircleIcon className="w-5 h-5" />
+                  <span className="font-medium">Profile</span>
+                </Link>
+                
+              </div>
+
+              {/* Mobile menu button */}
+              <button
+                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                className="md:hidden p-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+              >
+                {isMenuOpen ? (
+                  <XMarkIcon className="w-6 h-6" />
+                ) : (
+                  <Bars3Icon className="w-6 h-6" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Mobile Search Bar */}
+          <div className="lg:hidden pb-4">
+            <form onSubmit={handleSearch}>
+              <div className="relative">
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search internships..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+              </div>
+            </form>
+          </div>
+        </div>
+
+        {/* Mobile Menu */}
+        <AnimatePresence>
+          {isMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700"
+            >
+              <div className="px-4 py-4 space-y-4">
+                {navigation.map((item) => (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    className="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    {item.icon && <item.icon className="w-5 h-5" />}
+                    <span>{item.name}</span>
+                  </Link>
+                ))}
+                <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                  
+                  <Link
+                    href="/profile"
+                    className="block text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Profile
+                  </Link>
+                  
+                  {session ? (
+                    <button
+                      className="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        signOut({ callbackUrl: '/auth/signin' });
+                      }}
+                    >
+                      <Image src="/google.svg" alt="Google Sign Out" width={20} height={20} />
+                      <span>Sign Out</span>
+                    </button>
+                  ) : (
+                    <button
+                      className="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        signIn('google');
+                      }}
+                    >
+                      <Image src="/google.svg" alt="Google Sign In" width={20} height={20} />
+                      <span>Sign In with Google</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </header>
+
+                         
+    </>
+  );
+}
