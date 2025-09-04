@@ -125,7 +125,7 @@ model Application {
   internship   Internship @relation(fields: [internshipId], references: [id], onDelete: Cascade)
   userId       String     @db.ObjectId
   user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status       String     @default("pending") // pending, reviewing, accepted, rejected
+  status       String     @default("applied") // applied, shortlisted, interviewed, accepted, rejected
   coverLetter  String?
   resumeUrl    String?
   answers      Json?

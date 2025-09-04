@@ -104,32 +104,38 @@ export default function DashboardPage() {
       ];
 
   // Fetch user data from API
-  useEffect(() => {
-    const fetchUserData = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch('/api/user');
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch user data');
-        }
-        
-        const data = await response.json();
-        
-        if (data.success) {
-          setUserData(data.data);
-        } else {
-          throw new Error(data.error || 'Unknown error');
-        }
-      } catch (err) {
-        console.error('Error fetching user data:', err);
-        setError(err instanceof Error ? err.message : 'Failed to load user data');
-      } finally {
-        setLoading(false);
+  const fetchUserData = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/user');
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch user data');
       }
-    };
-    
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        console.log('Dashboard user data:', data.data);
+        setUserData(data.data);
+      } else {
+        throw new Error(data.error || 'Unknown error');
+      }
+    } catch (err) {
+      console.error('Error fetching user data:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load user data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchUserData();
+    
+    // Set up periodic refresh every 30 seconds to get real-time updates
+    const interval = setInterval(fetchUserData, 30000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   // Update profile when userData changes
@@ -166,12 +172,16 @@ export default function DashboardPage() {
 
   // Define stats after applications is available
   const applications = userData?.applications || [];
+  console.log('Dashboard applications data:', applications);
+  
   const stats = [
     { label: 'Applications', value: applications.length, icon: BriefcaseIcon },
     { label: 'Shortlisted', value: applications.filter(app => app.status === 'shortlisted').length, icon: StarIcon },
     { label: 'Interviews', value: applications.filter(app => app.status === 'interviewed').length, icon: EyeIcon },
     { label: 'Accepted', value: applications.filter(app => app.status === 'accepted').length, icon: CheckCircleIcon }
   ];
+  
+  console.log('Dashboard stats:', stats);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -264,9 +274,28 @@ export default function DashboardPage() {
     </div>
   );
 
-  const renderApplications = () => (
+  const renderApplications = () => {
+    console.log('Rendering applications:', applications);
+    return (
     <div className="space-y-6">
-      {applications.map((application) => (
+      {applications.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+            <BriefcaseIcon className="w-8 h-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">No applications yet</h3>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            Start applying to internships to see your applications here.
+          </p>
+          <a 
+            href="/internships" 
+            className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Browse Internships
+          </a>
+        </div>
+      ) : (
+        applications.map((application) => (
         <motion.div
           key={application.id}
           initial={{ opacity: 0, y: 20 }}
@@ -293,17 +322,24 @@ export default function DashboardPage() {
           </div>
           
           <div className="flex items-center space-x-4">
-            <button className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 text-sm font-medium">
+            <a 
+              href={`/dashboard/applications/${application.id}`}
+              className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 text-sm font-medium"
+            >
               View Details
-            </button>
-            <button className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 text-sm">
-              Withdraw Application
-            </button>
+            </a>
+            {userData?.user?.role === 'student' && (
+              <button className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 text-sm">
+                Withdraw Application
+              </button>
+            )}
           </div>
         </motion.div>
-      ))}
+        ))
+      )}
     </div>
-  );
+    );
+  };
 
   const renderCompany = () => (
     <div className="space-y-6">
@@ -507,9 +543,33 @@ export default function DashboardPage() {
       <div className="pt-20 pb-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           {/* Dashboard Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Dashboard</h1>
-            <p className="text-gray-600 dark:text-gray-300">Manage your internship applications and profile</p>
+          <div className="mb-8 flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">Dashboard</h1>
+              <p className="text-gray-600 dark:text-gray-300">Manage your internship applications and profile</p>
+            </div>
+            <div className="flex items-center space-x-3">
+              {(userData?.user?.role === 'admin' || userData?.user?.role === 'superadmin') && (
+                <a
+                  href="/dashboard/admin"
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center space-x-2"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Admin Panel</span>
+                </a>
+              )}
+              <button
+                onClick={fetchUserData}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center space-x-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span>Refresh</span>
+              </button>
+            </div>
           </div>
 
           {/* Tabs */}

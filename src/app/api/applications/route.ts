@@ -164,7 +164,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: 'You have already applied for this internship' }, { status: 400 });
       }
       const application = await prisma.application.create({
-        data: { internshipId, userId: user.id, coverLetter, resumeUrl, answers, status: 'pending' },
+        data: { internshipId, userId: user.id, coverLetter, resumeUrl, answers, status: 'applied' },
       });
       await (prisma as any).notification.create({
         data: { userId: targetInternship.company.ownerId, type: 'new_application', message: `New application for ${targetInternship.title}` },
@@ -188,12 +188,12 @@ export async function POST(request: NextRequest) {
       const targetInternship = await internshipsCol.findOne({ _id: oid });
       if (!targetInternship) { await client.close(); return NextResponse.json({ success: false, error: 'Internship not found' }, { status: 404 }); }
       if (targetInternship.status !== 'open') { await client.close(); return NextResponse.json({ success: false, error: 'Applications are closed for this internship' }, { status: 400 }); }
-      const existing = await applicationsCol.findOne({ userId: String(user._id), internshipId: String(targetInternship._id) });
+      const existing = await applicationsCol.findOne({ userId: String(user._id), internshipId: internshipId });
       if (existing) { await client.close(); return NextResponse.json({ success: false, error: 'You have already applied for this internship' }, { status: 400 }); }
       const insertRes = await applicationsCol.insertOne({
         userId: String(user._id),
-        internshipId: String(targetInternship._id),
-        status: 'pending',
+        internshipId: internshipId, // Use the original internshipId parameter
+        status: 'applied',
         coverLetter,
         resumeUrl,
         answers,
@@ -244,15 +244,41 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
-    const updated = await prisma.application.update({ where: { id: applicationId }, data: { status } });
+    const updated = await prisma.application.update({ 
+      where: { id: applicationId }, 
+      data: { status },
+      include: {
+        user: { select: { name: true, email: true } },
+        internship: { 
+          include: { 
+            company: { select: { name: true } } 
+          } 
+        }
+      }
+    });
+    
+    // Create detailed notification message
+    const statusMessages = {
+      'shortlisted': `Congratulations! Your application for ${updated.internship.title} at ${updated.internship.company.name} has been shortlisted. You're one step closer to getting the internship!`,
+      'interviewed': `Great news! You've been selected for an interview for ${updated.internship.title} at ${updated.internship.company.name}. Please check your email for interview details.`,
+      'accepted': `🎉 Congratulations! Your application for ${updated.internship.title} at ${updated.internship.company.name} has been accepted! Welcome to the team!`,
+      'rejected': `We regret to inform you that your application for ${updated.internship.title} at ${updated.internship.company.name} was not successful this time. Thank you for your interest.`
+    };
+    
+    const notificationMessage = statusMessages[status as keyof typeof statusMessages] || 
+      `Your application status for ${updated.internship.title} has been updated to ${status}`;
+    
     // Notify applicant about status change
     await (prisma as any).notification.create({
       data: {
         userId: updated.userId,
         type: 'application_status',
-        message: `Your application status changed to ${status}`,
+        message: notificationMessage,
       },
+    }).catch((error: any) => {
+      console.error('Failed to create notification:', error);
     });
+    
     return NextResponse.json({ success: true, data: updated, message: 'Application status updated' });
   } catch (error) {
     console.error('Error updating application status:', error);

@@ -160,9 +160,12 @@ export default function Header({ onSearch }: HeaderProps) {
 
               {/* Notifications */}
               <div className="relative">
-                <button className="p-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                <Link 
+                  href="/notifications"
+                  className="p-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                >
                   <BellIcon className="w-5 h-5" />
-                </button>
+                </Link>
                 {(applicationsCount > 0 || unreadNotifications > 0) && (
                   <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full px-1.5 py-0.5">
                     {unreadNotifications || applicationsCount}
@@ -234,6 +237,19 @@ export default function Header({ onSearch }: HeaderProps) {
                   </Link>
                 ))}
                 <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                  <Link
+                    href="/notifications"
+                    className="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    <BellIcon className="w-4 h-4" />
+                    <span>Notifications</span>
+                    {(applicationsCount > 0 || unreadNotifications > 0) && (
+                      <span className="bg-red-600 text-white text-xs rounded-full px-1.5 py-0.5">
+                        {unreadNotifications || applicationsCount}
+                      </span>
+                    )}
+                  </Link>
                   
                   <Link
                     href="/profile"

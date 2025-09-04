@@ -29,7 +29,9 @@ export const authOptions: AuthOptions = {
           const client = new MongoClient(process.env.DATABASE_URL!);
           await client.connect();
           
-          const db = client.db('onlyinternship_dummy');
+          const url = new URL(process.env.DATABASE_URL!);
+          const dbName = (url.pathname || '').replace(/^\//, '') || 'onlyinternship';
+          const db = client.db(dbName);
           const usersCollection = db.collection('User');
 
           const user = await usersCollection.findOne({ email: credentials.email });
