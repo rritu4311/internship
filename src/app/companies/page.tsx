@@ -34,6 +34,7 @@ export default function CompaniesPage() {
   const [selectedIndustry, setSelectedIndustry] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('');
   const [companies, setCompanies] = useState<Company[]>([]);
+  const [restrictToAdmin, setRestrictToAdmin] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -45,6 +46,15 @@ export default function CompaniesPage() {
     const fetchCompanies = async () => {
       try {
         setLoading(true);
+        // If admin, show only their company
+        try {
+          const res = await fetch('/api/user');
+          const data = await res.json();
+          if (data?.success && data.data?.user?.role === 'admin' && data.data?.company?.id) {
+            setRestrictToAdmin(data.data.company.id);
+          }
+        } catch {}
+
         const response = await fetch('/api/companies');
         
         if (!response.ok) {
@@ -70,6 +80,7 @@ export default function CompaniesPage() {
   }, []);
 
   const filteredCompanies = companies.filter(company => {
+    if (restrictToAdmin && company.id !== restrictToAdmin) return false;
     const matchesSearch = company.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          company.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          company.industry.toLowerCase().includes(searchTerm.toLowerCase());

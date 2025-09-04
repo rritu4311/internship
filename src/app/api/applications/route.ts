@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { MongoClient, ObjectId } from 'mongodb';
+import { prisma } from '@/lib/db';
 
 // GET /api/applications - Get user's applications
 export async function GET(request: NextRequest) {
@@ -138,34 +139,123 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Not authenticated' }, { status: 401 });
     }
     const body = await request.json();
-    const { internshipId, coverLetter, resumeUrl, answers } = body;
-    if (!internshipId) {
-      return NextResponse.json({ success: false, error: 'Internship ID is required' }, { status: 400 });
+    const { internshipId, coverLetter, resumeUrl, answers } = body || {};
+    if (!internshipId || typeof internshipId !== 'string') {
+      return NextResponse.json({ success: false, error: 'Valid internshipId is required' }, { status: 400 });
     }
-    // Find user by email
-    const user = await prisma.user.findUnique({ where: { email: session.user.email } });
-    if (!user) {
-      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
+    if (!coverLetter || typeof coverLetter !== 'string') {
+      return NextResponse.json({ success: false, error: 'Cover letter is required' }, { status: 400 });
     }
-    // Check for duplicate application
-    const existing = await prisma.application.findFirst({ where: { internshipId, userId: user.id } });
-    if (existing) {
-      return NextResponse.json({ success: false, error: 'You have already applied for this internship' }, { status: 400 });
-    }
-    // Create application
-    const application = await prisma.application.create({
-      data: {
-        internshipId,
-        userId: user.id,
+    // Attempt with Prisma first
+    try {
+      const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+      if (!user) {
+        return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
+      }
+      const targetInternship = await prisma.internship.findUnique({ where: { id: internshipId }, include: { company: true } });
+      if (!targetInternship) {
+        return NextResponse.json({ success: false, error: 'Internship not found' }, { status: 404 });
+      }
+      if (targetInternship.status !== 'open') {
+        return NextResponse.json({ success: false, error: 'Applications are closed for this internship' }, { status: 400 });
+      }
+      const existing = await prisma.application.findFirst({ where: { internshipId, userId: user.id } });
+      if (existing) {
+        return NextResponse.json({ success: false, error: 'You have already applied for this internship' }, { status: 400 });
+      }
+      const application = await prisma.application.create({
+        data: { internshipId, userId: user.id, coverLetter, resumeUrl, answers, status: 'pending' },
+      });
+      await (prisma as any).notification.create({
+        data: { userId: targetInternship.company.ownerId, type: 'new_application', message: `New application for ${targetInternship.title}` },
+      }).catch(() => {});
+      return NextResponse.json({ success: true, data: application, message: 'Application submitted successfully' });
+    } catch (e) {
+      // Fallback to Mongo driver to avoid Prisma replica set limitations
+      const client = new MongoClient(process.env.DATABASE_URL!);
+      await client.connect();
+      const url = new URL(process.env.DATABASE_URL!);
+      const dbName = (url.pathname || '').replace(/^\//, '') || 'onlyinternship';
+      const db = client.db(dbName);
+      const usersCol = db.collection('User');
+      const internshipsCol = db.collection('Internship');
+      const applicationsCol = db.collection('Application');
+
+      const user = await usersCol.findOne({ email: session.user.email });
+      if (!user) { await client.close(); return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 }); }
+      const oid = (() => { try { return new ObjectId(internshipId); } catch { return null; } })();
+      if (!oid) { await client.close(); return NextResponse.json({ success: false, error: 'Invalid internshipId' }, { status: 400 }); }
+      const targetInternship = await internshipsCol.findOne({ _id: oid });
+      if (!targetInternship) { await client.close(); return NextResponse.json({ success: false, error: 'Internship not found' }, { status: 404 }); }
+      if (targetInternship.status !== 'open') { await client.close(); return NextResponse.json({ success: false, error: 'Applications are closed for this internship' }, { status: 400 }); }
+      const existing = await applicationsCol.findOne({ userId: String(user._id), internshipId: String(targetInternship._id) });
+      if (existing) { await client.close(); return NextResponse.json({ success: false, error: 'You have already applied for this internship' }, { status: 400 }); }
+      const insertRes = await applicationsCol.insertOne({
+        userId: String(user._id),
+        internshipId: String(targetInternship._id),
+        status: 'pending',
         coverLetter,
         resumeUrl,
         answers,
-        status: 'pending',
-      },
-    });
-    return NextResponse.json({ success: true, data: application, message: 'Application submitted successfully' });
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      await client.close();
+      return NextResponse.json({ success: true, data: { id: String(insertRes.insertedId) }, message: 'Application submitted successfully' });
+    }
   } catch (error) {
     console.error('Error creating application:', error);
+    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+// PATCH /api/applications - Update application status (admin/superadmin only)
+export async function PATCH(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user?.email) {
+      return NextResponse.json({ success: false, error: 'Not authenticated' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const { applicationId, status } = body as { applicationId?: string; status?: string };
+    if (!applicationId || !status) {
+      return NextResponse.json({ success: false, error: 'applicationId and status are required' }, { status: 400 });
+    }
+
+    const actor = await prisma.user.findUnique({ where: { email: session.user.email } });
+    if (!actor) {
+      return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
+    }
+
+    if (actor.role !== 'admin' && actor.role !== 'superadmin') {
+      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Ensure admin can only update apps for their company
+    if (actor.role === 'admin') {
+      const company = await prisma.company.findFirst({ where: { ownerId: actor.id } });
+      if (!company) {
+        return NextResponse.json({ success: false, error: 'Admin does not own a company' }, { status: 403 });
+      }
+      const app = await prisma.application.findUnique({ where: { id: applicationId }, include: { internship: true } });
+      if (!app || app.internship.companyId !== company.id) {
+        return NextResponse.json({ success: false, error: 'Application not found for your company' }, { status: 404 });
+      }
+    }
+
+    const updated = await prisma.application.update({ where: { id: applicationId }, data: { status } });
+    // Notify applicant about status change
+    await (prisma as any).notification.create({
+      data: {
+        userId: updated.userId,
+        type: 'application_status',
+        message: `Your application status changed to ${status}`,
+      },
+    });
+    return NextResponse.json({ success: true, data: updated, message: 'Application status updated' });
+  } catch (error) {
+    console.error('Error updating application status:', error);
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }

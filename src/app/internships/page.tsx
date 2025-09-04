@@ -18,6 +18,7 @@ import Footer from '@/components/Footer';
 
 interface Internship {
   id: string;
+  companyId: string;
   title: string;
   company: string;
   companyLogo?: string;
@@ -60,17 +61,35 @@ export default function InternshipsPage() {
   const { data: session } = useSession();
   const router = useRouter();
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
+  const [isAdminContext, setIsAdminContext] = useState(false);
 
   const locations = ['New York, NY', 'San Francisco, CA', 'Chicago, IL', 'Austin, TX', 'Remote'];
   const types = ['Full-time', 'Part-time', 'Remote', 'Hybrid'];
 
-  // Check for company query param
+  // Check for company query param and admin context (show only own company's internships)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const companyId = urlParams.get('company');
     if (companyId) {
       setSelectedCompany(companyId);
     }
+    (async () => {
+      try {
+        const res = await fetch('/api/user');
+        const data = await res.json();
+        if (data?.success && (data.data?.user?.role === 'admin')) {
+          setIsAdminContext(true);
+          // Prefer first owned company if none from query
+          const companies = data.data?.companies || [];
+          if (!companyId && companies.length > 0 && companies[0]?.id) {
+            setSelectedCompany(companies[0].id);
+          } else if (!companyId && data.data?.company?.id) {
+            // legacy single company shape fallback
+            setSelectedCompany(data.data.company.id);
+          }
+        }
+      } catch {}
+    })();
   }, []);
 
   // Fetch internships from database
@@ -368,14 +387,23 @@ export default function InternshipsPage() {
                   <span className="text-sm text-gray-500 dark:text-gray-400">
                     Posted {new Date(internship.postedDate).toLocaleDateString()}
                   </span>
-                  <button 
-                    onClick={() => {
-                      setApplicationModal({ isOpen: true, internship });
-                    }}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                  >
-                    Apply Now
-                  </button>
+                  {session?.user?.role === 'admin' ? (
+                    <a
+                      href={`/dashboard/applications?internshipId=${internship.id}`}
+                      className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
+                    >
+                      Check Applications
+                    </a>
+                  ) : (
+                    <button 
+                      onClick={() => {
+                        setApplicationModal({ isOpen: true, internship });
+                      }}
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                    >
+                      Apply Now
+                    </button>
+                  )}
                 </div>
               </motion.div>
             ))}

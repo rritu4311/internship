@@ -33,7 +33,7 @@
     "db:migrate": "prisma migrate deploy",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
-    "db:seed": "tsx src/lib/db-seed.ts",
+    "db:seed": "prisma db seed",
     "db:init": "tsx src/lib/db-init.ts",
     "db:reset": "prisma db push --force-reset && npm run db:seed",
     "format": "prettier --write .",
@@ -144,7 +144,7 @@
   },
   "homepage": "https://onlyinternship.in",
   "prisma": {
-    "seed": "ts-node prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts"
   },
   "main": "index.js"
 }

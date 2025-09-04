@@ -28,6 +28,8 @@ export default function Header({ onSearch }: HeaderProps) {
   const [isScrolled, setIsScrolled] = useState(false);
   const { theme } = useTheme();
   const { data: session } = useSession();
+  const [applicationsCount, setApplicationsCount] = useState<number>(0);
+  const [unreadNotifications, setUnreadNotifications] = useState<number>(0);
 
   // Handle scroll effect
   useEffect(() => {
@@ -38,6 +40,32 @@ export default function Header({ onSearch }: HeaderProps) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  useEffect(() => {
+    const fetchApplications = async () => {
+      try {
+        const res = await fetch('/api/user');
+        const data = await res.json();
+        if (data?.success && Array.isArray(data.data?.applications)) {
+          setApplicationsCount(data.data.applications.length);
+        }
+      } catch {}
+    };
+    fetchApplications();
+  }, [session?.user?.email]);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const res = await fetch('/api/notifications');
+        const data = await res.json();
+        if (data?.success && Array.isArray(data.data)) {
+          setUnreadNotifications(data.data.filter((n: any) => !n.read).length);
+        }
+      } catch {}
+    };
+    fetchNotifications();
+  }, [session?.user?.email]);
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (onSearch && searchQuery.trim()) {
@@ -45,13 +73,17 @@ export default function Header({ onSearch }: HeaderProps) {
     }
   };
 
-  const navigation = [
+  const [nav, setNav] = useState([
     { name: 'Dashboard', href: '/' },
     { name: 'Internships', href: '/internships' },
     { name: 'Companies', href: '/companies' },
-    //{ name: 'Resources', href: '/resources' },
     { name: 'About', href: '/about' },
-  ];
+  ]);
+
+  useEffect(() => {
+    // Admins: Internships should route to their filtered view (already enforced server-side)
+    // No change to links, server filters by role; keep nav minimal.
+  }, [session?.user?.role]);
 
   return (
     <>
@@ -76,13 +108,12 @@ export default function Header({ onSearch }: HeaderProps) {
 
             {/* Desktop Navigation */}
             <nav className="hidden md:flex items-center space-x-8">
-              {navigation.map((item) => (
+              {nav.map((item) => (
                 <Link
                   key={item.name}
                   href={item.href}
                   className="flex items-center space-x-1 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
                 >
-                  {item.icon && <item.icon className="w-4 h-4" />}
                   <span>{item.name}</span>
                 </Link>
               ))}
@@ -128,9 +159,16 @@ export default function Header({ onSearch }: HeaderProps) {
               )}
 
               {/* Notifications */}
-              <button className="p-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
-                <BellIcon className="w-5 h-5" />
-              </button>
+              <div className="relative">
+                <button className="p-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors">
+                  <BellIcon className="w-5 h-5" />
+                </button>
+                {(applicationsCount > 0 || unreadNotifications > 0) && (
+                  <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full px-1.5 py-0.5">
+                    {unreadNotifications || applicationsCount}
+                  </span>
+                )}
+              </div>
 
               {/* User menu */}
               <div className="hidden md:flex items-center space-x-2">
@@ -185,14 +223,13 @@ export default function Header({ onSearch }: HeaderProps) {
               className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700"
             >
               <div className="px-4 py-4 space-y-4">
-                {navigation.map((item) => (
+                {nav.map((item) => (
                   <Link
                     key={item.name}
                     href={item.href}
                     className="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
                     onClick={() => setIsMenuOpen(false)}
                   >
-                    {item.icon && <item.icon className="w-5 h-5" />}
                     <span>{item.name}</span>
                   </Link>
                 ))}

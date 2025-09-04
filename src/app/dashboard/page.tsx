@@ -69,6 +69,8 @@ export default function DashboardPage() {
       githubProfile: string | null;
       portfolioUrl: string | null;
     } | null;
+    company?: any | null;
+    internships?: any[];
     applications: Application[];
   } | null>(null);
 
@@ -88,11 +90,18 @@ export default function DashboardPage() {
     bio: ''
   });
 
-  const tabs = [
-    { id: 'overview', name: 'Overview', icon: ChartBarIcon },
-    { id: 'applications', name: 'Applications', icon: BriefcaseIcon },
-    { id: 'profile', name: 'Profile', icon: UserCircleIcon }
-  ];
+  const isAdmin = userData?.user.role === 'admin' || userData?.user.role === 'superadmin';
+  const tabs = isAdmin
+    ? [
+        { id: 'company', name: 'My Company', icon: BriefcaseIcon },
+        { id: 'internships', name: 'My Internships', icon: BriefcaseIcon },
+        { id: 'applications', name: 'Applications', icon: ChartBarIcon },
+      ]
+    : [
+        { id: 'overview', name: 'Overview', icon: ChartBarIcon },
+        { id: 'applications', name: 'Applications', icon: BriefcaseIcon },
+        { id: 'profile', name: 'Profile', icon: UserCircleIcon },
+      ];
 
   // Fetch user data from API
   useEffect(() => {
@@ -296,6 +305,50 @@ export default function DashboardPage() {
     </div>
   );
 
+  const renderCompany = () => (
+    <div className="space-y-6">
+      <div className="flex justify-end">
+        <a href="/dashboard/company/new" className="px-4 py-2 bg-primary-600 text-white rounded-lg">Register Company</a>
+      </div>
+      {(userData as any)?.companies && (userData as any).companies.length > 0 ? (
+        (userData as any).companies.map((c: any) => (
+          <div key={c.id} className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{c.name}</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-2">{c.description}</p>
+            <p className="text-sm text-gray-500 dark:text-gray-500">{c.location} • {c.industry}</p>
+          </div>
+        ))
+      ) : (
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+          <p className="mb-4 text-gray-600 dark:text-gray-400">You do not have a company yet.</p>
+          <a href="/dashboard/company/new" className="px-4 py-2 bg-primary-600 text-white rounded-lg">Register Company</a>
+        </div>
+      )}
+    </div>
+  );
+
+  const renderAdminInternships = () => (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center mb-2">
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">My Internships</h3>
+        <a href="/dashboard/internships/new" className="px-3 py-2 bg-primary-600 text-white rounded-md">Add Internship</a>
+      </div>
+      {(userData?.internships || []).map((i: any) => (
+        <div key={i.id} className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+          <div className="flex justify-between items-center">
+            <div>
+              <h4 className="font-semibold text-gray-900 dark:text-white">{i.title}</h4>
+              <p className="text-gray-600 dark:text-gray-400 text-sm">{i.location} • {i.locationType} • {i.duration} weeks</p>
+            </div>
+            {i.createdAt && (
+              <span className="text-sm text-gray-500 dark:text-gray-500">{new Date(i.createdAt).toLocaleDateString()}</span>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
   const renderProfile = () => (
     <div className="space-y-6">
       {isEditingProfile ? (
@@ -481,9 +534,11 @@ export default function DashboardPage() {
 
           {/* Tab Content */}
           <div className="min-h-[600px]">
-            {activeTab === 'overview' && renderOverview()}
+            {activeTab === 'overview' && !isAdmin && renderOverview()}
             {activeTab === 'applications' && renderApplications()}
-            {activeTab === 'profile' && renderProfile()}
+            {activeTab === 'profile' && !isAdmin && renderProfile()}
+            {activeTab === 'company' && isAdmin && renderCompany()}
+            {activeTab === 'internships' && isAdmin && renderAdminInternships()}
           </div>
         </div>
       </div>
