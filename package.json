@@ -1,5 +1,5 @@
 {
-  "name": "onlyinternship.in",
+  "name": "yes",
   "version": "0.1.0",
   "private": true,
   "description": "A modern, responsive internship portal for MBA students and employers",
@@ -33,7 +33,7 @@
     "db:migrate": "prisma migrate deploy",
     "db:generate": "prisma generate",
     "db:studio": "prisma studio",
-    "db:seed": "tsx src/lib/db-seed.ts",
+    "db:seed": "prisma db seed",
     "db:init": "tsx src/lib/db-init.ts",
     "db:reset": "prisma db push --force-reset && npm run db:seed",
     "format": "prettier --write .",
@@ -66,7 +66,7 @@
     "lucide-react": "^0.263.1",
     "mongodb": "^6.19.0",
     "multer": "^1.4.5-lts.1",
-    "next": "15.5.2",
+    "next": "^15.5.2",
     "next-auth": "^4.24.5",
     "nodemailer": "^6.9.5",
     "prisma": "^5.0.0",
@@ -137,13 +137,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/onlyinternship.in.git"
+    "url": "git+https://github.com/yourusername/onlyinternship.in.git"
   },
   "bugs": {
     "url": "https://github.com/yourusername/onlyinternship.in/issues"
   },
   "homepage": "https://onlyinternship.in",
   "prisma": {
-    "seed": "ts-node prisma/seed.ts"
-  }
+    "seed": "tsx prisma/seed.ts"
+  },
+  "main": "index.js"
 }

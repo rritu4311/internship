@@ -15,6 +15,8 @@ import {
   BriefcaseIcon,
   GlobeAltIcon
 } from '@heroicons/react/24/outline';
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
 
 interface Profile {
   id?: string;
@@ -113,8 +115,9 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-20">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <Header />
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 pb-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -351,6 +354,7 @@ export default function ProfilePage() {
           </div>
         </motion.div>
       </div>
+      <Footer />
     </div>
   );
 }

@@ -18,6 +18,7 @@ import Footer from '@/components/Footer';
 
 interface Internship {
   id: string;
+  companyId: string;
   title: string;
   company: string;
   companyLogo?: string;
@@ -30,6 +31,12 @@ interface Internship {
   requirements: string[];
   skills: string[];
   isBookmarked: boolean;
+  applicationStatus?: {
+    hasApplied: boolean;
+    status?: string;
+    appliedDate?: string;
+    lastUpdated?: string;
+  };
 }
 
 interface ApplicationModalProps {
@@ -60,18 +67,54 @@ export default function InternshipsPage() {
   const { data: session } = useSession();
   const router = useRouter();
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
+  const [isAdminContext, setIsAdminContext] = useState(false);
 
   const locations = ['New York, NY', 'San Francisco, CA', 'Chicago, IL', 'Austin, TX', 'Remote'];
   const types = ['Full-time', 'Part-time', 'Remote', 'Hybrid'];
 
-  // Check for company query param
+  // Check for company query param and admin context (show only own company's internships)
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const companyId = urlParams.get('company');
     if (companyId) {
       setSelectedCompany(companyId);
     }
+    (async () => {
+      try {
+        const res = await fetch('/api/user');
+        const data = await res.json();
+        if (data?.success && (data.data?.user?.role === 'admin' || data.data?.user?.role === 'superadmin')) {
+          setIsAdminContext(true);
+          // Prefer first owned company if none from query
+          const companies = data.data?.companies || [];
+          if (!companyId && companies.length > 0 && companies[0]?.id) {
+            setSelectedCompany(companies[0].id);
+          } else if (!companyId && data.data?.company?.id) {
+            // legacy single company shape fallback
+            setSelectedCompany(data.data.company.id);
+          }
+        }
+      } catch {}
+    })();
   }, []);
+
+  // Function to check application status for an internship
+  const checkApplicationStatus = async (internshipId: string) => {
+    try {
+      console.log('Checking application status for internship:', internshipId);
+      const response = await fetch(`/api/applications/check?internshipId=${internshipId}`);
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Application status response:', data);
+        return data.success ? data.data : { hasApplied: false };
+      } else {
+        console.error('Application status check failed:', response.status, response.statusText);
+      }
+    } catch (error) {
+      console.error('Error checking application status:', error);
+    }
+    return { hasApplied: false };
+  };
 
   // Fetch internships from database
   useEffect(() => {
@@ -91,7 +134,23 @@ export default function InternshipsPage() {
         const data = await response.json();
         
         if (data.success) {
-          setInternships(data.data);
+          const internships = data.data;
+          
+          // Check application status for each internship if user is logged in
+          if (session?.user) {
+            const internshipsWithStatus = await Promise.all(
+              internships.map(async (internship: Internship) => {
+                const applicationStatus = await checkApplicationStatus(internship.id);
+                return {
+                  ...internship,
+                  applicationStatus,
+                };
+              })
+            );
+            setInternships(internshipsWithStatus);
+          } else {
+            setInternships(internships);
+          }
         } else {
           throw new Error(data.error || 'Failed to load internships');
         }
@@ -104,7 +163,7 @@ export default function InternshipsPage() {
     };
 
     fetchInternships();
-  }, [selectedCompany]); // Add selectedCompany to dependency array
+  }, [selectedCompany, session?.user]); // Add session.user to dependency array
 
   const filteredInternships = internships.filter(internship => {
     // If selectedCompany is set, only show internships for that company
@@ -146,6 +205,49 @@ export default function InternshipsPage() {
         // Close modal and show success message
         setApplicationModal({ isOpen: false, internship: null });
         alert('Application submitted successfully!');
+        
+        // Refresh the internships list to show updated application status
+        const fetchInternships = async () => {
+          try {
+            let apiUrl = '/api/internships';
+            if (selectedCompany) {
+              apiUrl += `?companyId=${selectedCompany}`;
+            }
+            const response = await fetch(apiUrl);
+            
+            if (response.ok) {
+              const data = await response.json();
+              if (data.success) {
+                const internships = data.data;
+                
+                // Check application status for each internship
+                if (session?.user) {
+                  const internshipsWithStatus = await Promise.all(
+                    internships.map(async (internship: Internship) => {
+                      const applicationStatus = await checkApplicationStatus(internship.id);
+                      return {
+                        ...internship,
+                        applicationStatus,
+                      };
+                    })
+                  );
+                  setInternships(internshipsWithStatus);
+                } else {
+                  setInternships(internships);
+                }
+              }
+            }
+          } catch (err) {
+            console.error('Error refreshing internships:', err);
+          }
+        };
+        
+        fetchInternships();
+        
+        // Also trigger a dashboard refresh if user is on dashboard
+        if (window.location.pathname === '/dashboard') {
+          window.location.reload();
+        }
       } else {
         alert(data.error || 'Failed to submit application');
       }
@@ -158,6 +260,24 @@ export default function InternshipsPage() {
 
   const handleSearch = (query: string) => {
     setSearchTerm(query);
+  };
+
+  // Function to calculate time difference
+  const getTimeDifference = (dateString: string) => {
+    const now = new Date();
+    const past = new Date(dateString);
+    const diffInMs = now.getTime() - past.getTime();
+    const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
+    const diffInDays = Math.floor(diffInHours / 24);
+
+    if (diffInDays > 0) {
+      return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`;
+    } else if (diffInHours > 0) {
+      return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`;
+    } else {
+      const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
+      return `${diffInMinutes} minute${diffInMinutes > 1 ? 's' : ''} ago`;
+    }
   };
 
   const toggleBookmark = (internshipId: string) => {
@@ -368,14 +488,39 @@ export default function InternshipsPage() {
                   <span className="text-sm text-gray-500 dark:text-gray-400">
                     Posted {new Date(internship.postedDate).toLocaleDateString()}
                   </span>
-                  <button 
-                    onClick={() => {
-                      setApplicationModal({ isOpen: true, internship });
-                    }}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                  >
-                    Apply Now
-                  </button>
+                  {(session?.user?.role === 'admin' || session?.user?.role === 'superadmin') ? (
+                    <a
+                      href={`/dashboard/applications?internshipId=${internship.id}`}
+                      className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded-lg transition-colors"
+                    >
+                      Check Applications
+                    </a>
+                  ) : (
+                    <div className="flex flex-col items-end">
+                      {internship.applicationStatus?.hasApplied ? (
+                        <>
+                          <button 
+                            disabled
+                            className="px-4 py-2 bg-gray-400 text-white rounded-lg cursor-not-allowed"
+                          >
+                            Applied
+                          </button>
+                          <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            {getTimeDifference(internship.applicationStatus.appliedDate || internship.applicationStatus.lastUpdated || '')}
+                          </span>
+                        </>
+                      ) : (
+                        <button 
+                          onClick={() => {
+                            setApplicationModal({ isOpen: true, internship });
+                          }}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                        >
+                          Apply Now
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </motion.div>
             ))}
