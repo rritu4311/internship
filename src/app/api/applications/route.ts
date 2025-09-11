@@ -7,6 +7,8 @@ import { prisma } from '@/lib/db';
 // GET /api/applications - Get user's applications
 export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const filterInternshipId = searchParams.get('internshipId');
     const session = await getServerSession(authOptions);
     
     if (!session || !session.user?.email) {
@@ -29,19 +31,21 @@ export async function GET(request: NextRequest) {
     
     // Check user role
     if (user.role === 'admin') {
-      // Find the company owned by this admin
-      const company = await prisma.company.findFirst({ where: { ownerId: user.id } });
-      console.log('[ADMIN] Prisma userId:', user.id, 'companyId:', company?.id);
-      if (!company) {
-        return NextResponse.json({ success: false, error: 'Admin does not own a company' }, { status: 403 });
-      }
-      // Find all internships for this company
-      const internships = await prisma.internship.findMany({ where: { companyId: company.id }, select: { id: true, title: true } });
-      const internshipIds = internships.map(i => i.id);
-      const internshipTitles = internships.map(i => i.title);
+      // Find all companies owned by this admin
+      const companies = await prisma.company.findMany({ where: { ownerId: user.id } });
+      console.log('[ADMIN] Prisma userId:', user.id, 'found companies:', companies.map((c: { id: string }) => c.id));
+      // Do not return early if none found in Prisma; we will also try MongoDB fallback.
+      const companyIds = (companies && companies.length > 0)
+        ? companies.map((c: { id: string }) => c.id)
+        : [] as string[];
+
+      // Find all internships for these companies
+      const internships = await prisma.internship.findMany({ where: { companyId: { in: companyIds } }, select: { id: true, title: true } });
+      const internshipIds = internships.map((i: { id: string }) => i.id);
+      const internshipTitles = internships.map((i: { title: string }) => i.title);
       console.log('[ADMIN] Prisma internshipIds:', internshipIds, 'titles:', internshipTitles);
       let prismaApplications = await prisma.application.findMany({
-        where: { internshipId: { in: internshipIds } },
+        where: filterInternshipId ? { internshipId: filterInternshipId } : { internshipId: { in: internshipIds } },
         include: {
           internship: {
             include: {
@@ -52,7 +56,7 @@ export async function GET(request: NextRequest) {
         },
         orderBy: { createdAt: 'desc' },
       });
-      console.log('[ADMIN] Prisma applications found:', prismaApplications.length, prismaApplications.map(a => ({ id: a.id, title: a.internship.title })));
+      console.log('[ADMIN] Prisma applications found:', prismaApplications.length, prismaApplications.map((a: any) => ({ id: a.id, title: a.internship.title })));
       // Always check MongoDB as well
       let mongoApplications: any[] = [];
       try {
@@ -65,15 +69,24 @@ export async function GET(request: NextRequest) {
         const internshipsCol = db.collection('Internship');
         const applicationsCol = db.collection('Application');
         const usersCol = db.collection('User');
-        // Find company in MongoDB
-        const mongoCompany = await companiesCol.findOne({ ownerId: user.id });
+        // Find admin owner in MongoDB by email (more reliable than id across Prisma/Mongo)
+        const mongoOwner = await usersCol.findOne({ email: session.user.email });
+        // Find company in MongoDB by ownerId (string or ObjectId) and also try prisma user.id as fallback
+        const mongoCompany = mongoOwner
+          ? await companiesCol.findOne({ $or: [
+              { ownerId: String(mongoOwner._id) },
+              { ownerId: mongoOwner._id },
+              { ownerId: user.id },
+            ] as any })
+          : await companiesCol.findOne({ $or: [ { ownerId: user.id }, { ownerId: new ObjectId(user.id) } ] as any });
         console.log('[ADMIN] MongoDB company:', mongoCompany?._id?.toString(), mongoCompany?.name);
         if (mongoCompany) {
-          const mongoInternships = await internshipsCol.find({ companyId: mongoCompany._id.toString() }).toArray();
+          const companyIdVariants = [String(mongoCompany._id), new ObjectId(mongoCompany._id)];
+          const mongoInternships = await internshipsCol.find({ companyId: { $in: companyIdVariants as any } }).toArray();
           const mongoInternshipIds = mongoInternships.map(i => i._id.toString());
           const mongoInternshipTitles = mongoInternships.map(i => i.title);
           console.log('[ADMIN] MongoDB internshipIds:', mongoInternshipIds, 'titles:', mongoInternshipTitles);
-          const mongoApps = await applicationsCol.find({ internshipId: { $in: mongoInternshipIds } }).toArray();
+          const mongoApps = await applicationsCol.find(filterInternshipId ? { internshipId: filterInternshipId } : { internshipId: { $in: mongoInternshipIds } }).toArray();
           console.log('[ADMIN] MongoDB applications found:', mongoApps.length, mongoApps.map(a => ({ id: a._id?.toString(), internshipId: a.internshipId })));
           if (mongoApps.length > 0) {
             // Get full application data with user info
@@ -107,7 +120,7 @@ export async function GET(request: NextRequest) {
       }
       // Merge and deduplicate by id
       const appMap = new Map();
-      prismaApplications.forEach(app => appMap.set(app.id, {
+      prismaApplications.forEach((app: any) => appMap.set(app.id, {
         id: app.id,
         internshipId: app.internshipId,
         internshipTitle: app.internship.title,
@@ -119,9 +132,9 @@ export async function GET(request: NextRequest) {
         resumeUrl: app.resumeUrl,
         user: app.user,
       }));
-      mongoApplications.forEach(app => appMap.set(app.id, app));
+      mongoApplications.forEach((app: any) => appMap.set(app.id, app));
       const mergedApplications = Array.from(appMap.values());
-      console.log('[ADMIN] Merged applications returned:', mergedApplications.map(a => ({ id: a.id, title: a.internshipTitle })));
+      console.log('[ADMIN] Merged applications returned:', mergedApplications.map((a: any) => ({ id: a.id, title: a.internshipTitle })));
       return NextResponse.json({ success: true, data: mergedApplications });
     } else if (user.role === 'superadmin') {
       // Super admin: see all applications
@@ -147,13 +160,15 @@ export async function GET(request: NextRequest) {
           const companiesCol = db.collection('Company');
           const internshipsCol = db.collection('Internship');
           const applicationsCol = db.collection('Application');
+          const usersCol = db.collection('User');
           const mongoApps = await applicationsCol.find({}).toArray();
           console.log('MongoDB applications for superadmin:', mongoApps.length);
           if (mongoApps.length > 0) {
             // Get full application data
-            const fullApplications = await Promise.all(mongoApps.map(async (app) => {
+            const fullApplications = await Promise.all(mongoApps.map(async (app: any) => {
               const internship = await internshipsCol.findOne({ _id: new ObjectId(app.internshipId) });
               const company = internship ? await companiesCol.findOne({ _id: new ObjectId(internship.companyId) }) : null;
+              const applicant = app.userId ? await usersCol.findOne({ _id: new ObjectId(app.userId) }) : null;
               return {
                 id: app._id.toString(),
                 internshipId: app.internshipId,
@@ -164,6 +179,12 @@ export async function GET(request: NextRequest) {
                 lastUpdated: app.updatedAt?.toISOString?.() || '',
                 coverLetter: app.coverLetter,
                 resumeUrl: app.resumeUrl,
+                user: applicant ? {
+                  id: applicant._id.toString(),
+                  name: applicant.name,
+                  email: applicant.email,
+                  image: applicant.image,
+                } : null,
               };
             }));
             await client.close();
@@ -174,7 +195,7 @@ export async function GET(request: NextRequest) {
           console.error('MongoDB fallback for superadmin failed:', mongoError);
         }
       }
-      const formattedApplications = applications.map(app => ({
+      const formattedApplications = applications.map((app: any) => ({
         id: app.id,
         internshipId: app.internshipId,
         internshipTitle: app.internship.title,
@@ -206,7 +227,7 @@ export async function GET(request: NextRequest) {
         },
       });
       
-      const formattedApplications = applications.map(app => ({
+      let formattedApplications = applications.map((app: any) => ({
         id: app.id,
         internshipId: app.internshipId,
         internshipTitle: app.internship.title,
@@ -217,6 +238,42 @@ export async function GET(request: NextRequest) {
         coverLetter: app.coverLetter,
         resumeUrl: app.resumeUrl,
       }));
+      // Fallback to Mongo if user has applications stored only in MongoDB
+      if (!formattedApplications || formattedApplications.length === 0) {
+        try {
+          const client = new MongoClient(process.env.DATABASE_URL!);
+          await client.connect();
+          const url = new URL(process.env.DATABASE_URL!);
+          const dbName = (url.pathname || '').replace(/^\//, '') || 'onlyinternship';
+          const db = client.db(dbName);
+          const usersCol = db.collection('User');
+          const internshipsCol = db.collection('Internship');
+          const companiesCol = db.collection('Company');
+          const applicationsCol = db.collection('Application');
+          const mongoUser = await usersCol.findOne({ email: session.user.email });
+          if (mongoUser) {
+            const mongoApps = await applicationsCol.find({ userId: String(mongoUser._id) }).toArray();
+            formattedApplications = await Promise.all(mongoApps.map(async (app: any) => {
+              const internship = await internshipsCol.findOne({ _id: new ObjectId(app.internshipId) });
+              const company = internship ? await companiesCol.findOne({ _id: new ObjectId(internship.companyId) }) : null;
+              return {
+                id: String(app._id),
+                internshipId: app.internshipId,
+                internshipTitle: internship?.title || 'Unknown',
+                company: company?.name || 'Unknown',
+                appliedDate: app.createdAt?.toISOString?.() || '',
+                status: app.status,
+                lastUpdated: app.updatedAt?.toISOString?.() || '',
+                coverLetter: app.coverLetter,
+                resumeUrl: app.resumeUrl,
+              };
+            }));
+          }
+          await client.close();
+        } catch (mongoError) {
+          console.error('MongoDB fallback for regular user failed:', mongoError);
+        }
+      }
       
       return NextResponse.json({
         success: true,
@@ -268,11 +325,28 @@ export async function POST(request: NextRequest) {
       const application = await prisma.application.create({
         data: { internshipId, userId: user.id, coverLetter, resumeUrl, answers, status: 'applied' },
       });
-      // Only notify the admin (company owner) on new application
+      // Notify the admin (company owner) on new application
       await (prisma as any).notification.create({
-        data: { userId: targetInternship.company.ownerId, type: 'new_application', message: `New application for ${targetInternship.title}` },
+        data: {
+          userId: targetInternship.company.ownerId,
+          type: 'new_application',
+          title: 'New Application',
+          message: `New application for ${targetInternship.title}`,
+          relatedId: application.id,
+        },
       }).catch(() => {});
-      // Do NOT notify the student (applicant) here
+      
+      // Also notify the student (applicant) that their application was submitted
+      await (prisma as any).notification.create({
+        data: {
+          userId: user.id,
+          type: 'application_submitted',
+          title: 'Application Submitted',
+          message: `Your application for ${targetInternship.title} has been successfully submitted! You will be notified when the status changes.`,
+          relatedId: application.id,
+        },
+      }).catch(() => {});
+      
       return NextResponse.json({ success: true, data: application, message: 'Application submitted successfully' });
     } catch (e) {
       // Fallback to Mongo driver to avoid Prisma replica set limitations
@@ -304,19 +378,33 @@ export async function POST(request: NextRequest) {
         createdAt: new Date(),
         updatedAt: new Date(),
       });
-      // Only notify the admin (company owner) on new application
+      // Notify the admin (company owner) on new application
       const company = await companiesCol.findOne({ _id: new ObjectId(targetInternship.companyId) });
       if (company && company.ownerId) {
         const notifsCol = db.collection('Notification');
         await notifsCol.insertOne({
           userId: company.ownerId,
           type: 'new_application',
+          title: 'New Application',
           message: `New application for ${targetInternship.title}`,
+          relatedId: String(insertRes.insertedId),
           read: false,
           createdAt: new Date(),
         });
       }
-      // Do NOT notify the student (applicant) here
+      
+      // Also notify the student (applicant) that their application was submitted
+      const notifsCol = db.collection('Notification');
+      await notifsCol.insertOne({
+        userId: String(user._id),
+        type: 'application_submitted',
+        title: 'Application Submitted',
+        message: `Your application for ${targetInternship.title} has been successfully submitted! You will be notified when the status changes.`,
+        relatedId: String(insertRes.insertedId),
+        read: false,
+        createdAt: new Date(),
+      });
+      
       await client.close();
       return NextResponse.json({ success: true, data: { id: String(insertRes.insertedId) }, message: 'Application submitted successfully' });
     }
@@ -349,45 +437,112 @@ export async function PATCH(request: NextRequest) {
     if (actor.role === 'admin') {
       const company = await prisma.company.findFirst({ where: { ownerId: actor.id } });
       if (!company) {
-        return NextResponse.json({ success: false, error: 'Admin does not own a company' }, { status: 403 });
-      }
-      const app = await prisma.application.findUnique({ where: { id: applicationId }, include: { internship: true } });
-      if (!app || app.internship.companyId !== company.id) {
-        return NextResponse.json({ success: false, error: 'Application not found for your company' }, { status: 404 });
-      }
-    }
-    const updated = await prisma.application.update({ 
-      where: { id: applicationId }, 
-      data: { status },
-      include: {
-        user: { select: { id: true, name: true, email: true, image: true } },
-        internship: { 
-          include: { 
-            company: { select: { name: true } } 
-          } 
+        // continue to Mongo check below
+      } else {
+        const app = await prisma.application.findUnique({ where: { id: applicationId }, include: { internship: true } });
+        if (!app || app.internship.companyId !== company.id) {
+          // continue to Mongo check below
         }
       }
-    });
-    // Create detailed notification message
-    const statusMessages = {
-      'shortlisted': `Congratulations! Your application for ${updated.internship.title} at ${updated.internship.company.name} has been shortlisted. You're one step closer to getting the internship!`,
-      'interviewed': `Great news! You've been selected for an interview for ${updated.internship.title} at ${updated.internship.company.name}. Please check your email for interview details.`,
-      'accepted': `🎉 Congratulations! Your application for ${updated.internship.title} at ${updated.internship.company.name} has been accepted! Welcome to the team!`,
-      'rejected': `We regret to inform you that your application for ${updated.internship.title} at ${updated.internship.company.name} was not successful this time. Thank you for your interest.`
-    };
-    const notificationMessage = statusMessages[status as keyof typeof statusMessages] || 
-      `Your application status for ${updated.internship.title} has been updated to ${status}`;
-    // Only notify the student (applicant) on status change
-    await (prisma as any).notification.create({
-      data: {
-        userId: updated.userId,
-        type: 'application_status',
-        message: notificationMessage,
-      },
-    }).catch((error: any) => {
-      console.error('Failed to create notification:', error);
-    });
-    return NextResponse.json({ success: true, data: updated, message: 'Application status updated' });
+    }
+    try {
+      const updated = await prisma.application.update({ 
+        where: { id: applicationId }, 
+        data: { status },
+        include: {
+          user: { select: { id: true, name: true, email: true, image: true } },
+          internship: { 
+            include: { 
+              company: { select: { name: true } } 
+            } 
+          }
+        }
+      });
+      // Create detailed notification message
+      const statusMessages = {
+        'shortlisted': `Congratulations! Your application for ${updated.internship.title} at ${updated.internship.company.name} has been shortlisted. You're one step closer to getting the internship!`,
+        'interviewed': `Great news! You've been selected for an interview for ${updated.internship.title} at ${updated.internship.company.name}. Please check your email for interview details.`,
+        'accepted': `🎉 Congratulations! Your application for ${updated.internship.title} at ${updated.internship.company.name} has been accepted! Welcome to the team!`,
+        'rejected': `We regret to inform you that your application for ${updated.internship.title} at ${updated.internship.company.name} was not successful this time. Thank you for your interest.`
+      } as const;
+      const notificationMessage = (statusMessages as any)[status] || 
+        `Your application status for ${updated.internship.title} has been updated to ${status}`;
+      // Only notify the student (applicant) on status change
+      await (prisma as any).notification.create({
+        data: {
+          userId: updated.userId,
+          type: 'application_status',
+          title: 'Application Status Updated',
+          message: notificationMessage,
+          relatedId: updated.id,
+        },
+      }).catch((error: any) => {
+        console.error('Failed to create notification:', error);
+      });
+      return NextResponse.json({ success: true, data: updated, message: 'Application status updated' });
+    } catch (e) {
+      // Mongo fallback for updating application status
+      try {
+        const client = new MongoClient(process.env.DATABASE_URL!);
+        await client.connect();
+        const url = new URL(process.env.DATABASE_URL!);
+        const dbName = (url.pathname || '').replace(/^\//, '') || 'onlyinternship';
+        const db = client.db(dbName);
+        const usersCol = db.collection('User');
+        const companiesCol = db.collection('Company');
+        const internshipsCol = db.collection('Internship');
+        const applicationsCol = db.collection('Application');
+        const notifsCol = db.collection('Notification');
+
+        const appOid = (() => { try { return new ObjectId(applicationId!); } catch { return null; } })();
+        if (!appOid) { await client.close(); return NextResponse.json({ success: false, error: 'Invalid applicationId' }, { status: 400 }); }
+        const app = await applicationsCol.findOne({ _id: appOid });
+        if (!app) { await client.close(); return NextResponse.json({ success: false, error: 'Application not found' }, { status: 404 }); }
+
+        // Permission: if admin, ensure owns the company of the internship
+        if (actor.role === 'admin') {
+          const internship = await internshipsCol.findOne({ _id: new ObjectId(app.internshipId) });
+          if (!internship) { await client.close(); return NextResponse.json({ success: false, error: 'Internship not found' }, { status: 404 }); }
+          const company = await companiesCol.findOne({ _id: new ObjectId(internship.companyId) });
+          const actorMongo = await usersCol.findOne({ email: actor.email });
+          const actorOwnerId = actorMongo ? String(actorMongo._id) : actor.id;
+          if (!company || ![String(company.ownerId), actor.id].includes(actorOwnerId)) {
+            await client.close();
+            return NextResponse.json({ success: false, error: 'Application not found for your company' }, { status: 404 });
+          }
+        }
+
+        await applicationsCol.updateOne({ _id: appOid }, { $set: { status, updatedAt: new Date() } });
+
+        // Notification to applicant
+        const applicantId = String(app.userId);
+        const internship = await internshipsCol.findOne({ _id: new ObjectId(app.internshipId) });
+        const company = internship ? await companiesCol.findOne({ _id: new ObjectId(internship.companyId) }) : null;
+        const statusMessages = {
+          'shortlisted': `Congratulations! Your application for ${internship?.title ?? 'the internship'} at ${company?.name ?? 'the company'} has been shortlisted. You're one step closer to getting the internship!`,
+          'interviewed': `Great news! You've been selected for an interview for ${internship?.title ?? 'the internship'} at ${company?.name ?? 'the company'}. Please check your email for interview details.`,
+          'accepted': `🎉 Congratulations! Your application for ${internship?.title ?? 'the internship'} at ${company?.name ?? 'the company'} has been accepted! Welcome to the team!`,
+          'rejected': `We regret to inform you that your application for ${internship?.title ?? 'the internship'} at ${company?.name ?? 'the company'} was not successful this time. Thank you for your interest.`
+        } as const;
+        const notificationMessage = (statusMessages as any)[status] || 
+          `Your application status has been updated to ${status}`;
+        await notifsCol.insertOne({
+          userId: applicantId,
+          type: 'application_status',
+          title: 'Application Status Updated',
+          message: notificationMessage,
+          relatedId: String(app._id),
+          read: false,
+          createdAt: new Date(),
+        });
+
+        await client.close();
+        return NextResponse.json({ success: true, data: { id: String(app._id), status }, message: 'Application status updated' });
+      } catch (mongoUpdateError) {
+        console.error('MongoDB fallback for PATCH failed:', mongoUpdateError);
+        return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
+      }
+    }
   } catch (error) {
     console.error('Error updating application status:', error);
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });

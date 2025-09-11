@@ -1,10 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
 export default function NewInternshipPage() {
+  const router = useRouter();
   const [companyId, setCompanyId] = useState<string | null>(null);
   const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
   const [form, setForm] = useState({
@@ -67,6 +69,11 @@ export default function NewInternshipPage() {
       const data = await resp.json();
       if (!data.success) throw new Error(data.error || 'Failed to create internship');
       setSuccess('Internship created successfully');
+      
+      // Redirect to dashboard after successful creation
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 1000);
     } catch (err: any) {
       setError(err.message || 'Failed to create internship');
     } finally {

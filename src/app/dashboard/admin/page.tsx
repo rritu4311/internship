@@ -1,9 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  BriefcaseIcon, 
-  UserIcon, 
+import Header from '@/components/Header';
+import Footer from '@/components/Footer';
+import {
+  BriefcaseIcon,
+  UserIcon,
   CalendarIcon,
   EyeIcon,
   CheckCircleIcon,
@@ -34,6 +36,13 @@ export default function AdminDashboardPage() {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [userRole, setUserRole] = useState<string>('');
+  const [roleLoading, setRoleLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
+  const [internships, setInternships] = useState<{ id: string; title: string; companyId: string }[]>([]);
+  const [companyFilter, setCompanyFilter] = useState<string>('');
+  const [internshipFilter, setInternshipFilter] = useState<string>('');
+  const [internshipToCompany, setInternshipToCompany] = useState<Record<string, string>>({});
 
   useEffect(() => {
     fetchUserRole();
@@ -46,9 +55,19 @@ export default function AdminDashboardPage() {
       const data = await response.json();
       if (data.success) {
         setUserRole(data.data?.user?.role || '');
+        const comps = (data.data?.companies || []).map((c: any) => ({ id: c.id, name: c.name }));
+        setCompanies(comps);
+        const ints = (data.data?.internships || []).map((i: any) => ({ id: i.id, title: i.title, companyId: i.companyId || (i.companyId? i.companyId : (i.company?.id || '')) }));
+        setInternships(ints);
+        const map: Record<string, string> = {};
+        ints.forEach((i: { id: string; companyId: string }) => { if (i.id && i.companyId) map[i.id] = String(i.companyId); });
+        setInternshipToCompany(map);
       }
     } catch (error) {
       console.error('Error fetching user role:', error);
+    }
+    finally {
+      setRoleLoading(false);
     }
   };
 
@@ -110,7 +129,7 @@ export default function AdminDashboardPage() {
     return counts;
   };
 
-  if (loading) {
+  if (loading || roleLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
@@ -119,7 +138,7 @@ export default function AdminDashboardPage() {
   }
 
   // Check if user is admin or superadmin
-  if (userRole !== 'admin' && userRole !== 'superadmin') {
+  if (!roleLoading && userRole !== 'admin' && userRole !== 'superadmin') {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
@@ -137,10 +156,20 @@ export default function AdminDashboardPage() {
   }
 
   const statusCounts = getStatusCounts();
+  const filteredApplications = applications.filter(app => {
+    if (statusFilter !== 'all' && app.status !== statusFilter) return false;
+    if (companyFilter) {
+      const appCompanyId = internshipToCompany[app.internshipId];
+      if (!appCompanyId || appCompanyId !== companyFilter) return false;
+    }
+    if (internshipFilter && app.internshipId !== internshipFilter) return false;
+    return true;
+  });
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <Header />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
@@ -151,9 +180,66 @@ export default function AdminDashboardPage() {
           </p>
         </div>
 
-        {/* Status Overview Cards */}
+        {/* Filters */}
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-6 border border-gray-200 dark:border-gray-700">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div>
+              <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Company</label>
+              <select
+                value={companyFilter}
+                onChange={(e) => { setCompanyFilter(e.target.value); setInternshipFilter(''); }}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              >
+                <option value="">All Companies</option>
+                {companies.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Internship</label>
+              <select
+                value={internshipFilter}
+                onChange={(e) => setInternshipFilter(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              >
+                <option value="">All Internships</option>
+                {internships
+                  .filter(i => !companyFilter || String(i.companyId) === companyFilter)
+                  .map(i => (
+                  <option key={i.id} value={i.id}>{i.title}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Status</label>
+              <select
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              >
+                <option value="all">All</option>
+                <option value="applied">Applied</option>
+                <option value="shortlisted">Shortlisted</option>
+                <option value="interviewed">Interviewed</option>
+                <option value="accepted">Accepted</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
+            <div className="flex items-end">
+              <button
+                onClick={() => { setCompanyFilter(''); setInternshipFilter(''); setStatusFilter('all'); }}
+                className="w-full px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium"
+              >
+                Reset Filters
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Status Overview Cards (clickable) */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+          <button onClick={() => setStatusFilter(statusFilter === 'applied' ? 'all' : 'applied')} className={`text-left bg-white dark:bg-gray-800 rounded-xl p-6 border ${statusFilter==='applied' ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-800' : 'border-gray-200 dark:border-gray-700'}`}>
             <div className="flex items-center">
               <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
                 <ClockIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
@@ -163,9 +249,9 @@ export default function AdminDashboardPage() {
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">{statusCounts.applied}</p>
               </div>
             </div>
-          </div>
+          </button>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+          <button onClick={() => setStatusFilter(statusFilter === 'shortlisted' ? 'all' : 'shortlisted')} className={`text-left bg-white dark:bg-gray-800 rounded-xl p-6 border ${statusFilter==='shortlisted' ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-800' : 'border-gray-200 dark:border-gray-700'}`}>
             <div className="flex items-center">
               <div className="p-2 bg-yellow-100 dark:bg-yellow-900 rounded-lg">
                 <StarIcon className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
@@ -175,9 +261,9 @@ export default function AdminDashboardPage() {
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">{statusCounts.shortlisted}</p>
               </div>
             </div>
-          </div>
+          </button>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+          <button onClick={() => setStatusFilter(statusFilter === 'interviewed' ? 'all' : 'interviewed')} className={`text-left bg-white dark:bg-gray-800 rounded-xl p-6 border ${statusFilter==='interviewed' ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-800' : 'border-gray-200 dark:border-gray-700'}`}>
             <div className="flex items-center">
               <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
                 <EyeIcon className="w-6 h-6 text-purple-600 dark:text-purple-400" />
@@ -187,9 +273,9 @@ export default function AdminDashboardPage() {
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">{statusCounts.interviewed}</p>
               </div>
             </div>
-          </div>
+          </button>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+          <button onClick={() => setStatusFilter(statusFilter === 'accepted' ? 'all' : 'accepted')} className={`text-left bg-white dark:bg-gray-800 rounded-xl p-6 border ${statusFilter==='accepted' ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-800' : 'border-gray-200 dark:border-gray-700'}`}>
             <div className="flex items-center">
               <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
                 <CheckCircleIcon className="w-6 h-6 text-green-600 dark:text-green-400" />
@@ -199,9 +285,9 @@ export default function AdminDashboardPage() {
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">{statusCounts.accepted}</p>
               </div>
             </div>
-          </div>
+          </button>
 
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+          <button onClick={() => setStatusFilter(statusFilter === 'rejected' ? 'all' : 'rejected')} className={`text-left bg-white dark:bg-gray-800 rounded-xl p-6 border ${statusFilter==='rejected' ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-800' : 'border-gray-200 dark:border-gray-700'}`}>
             <div className="flex items-center">
               <div className="p-2 bg-red-100 dark:bg-red-900 rounded-lg">
                 <XCircleIcon className="w-6 h-6 text-red-600 dark:text-red-400" />
@@ -211,19 +297,19 @@ export default function AdminDashboardPage() {
                 <p className="text-2xl font-bold text-gray-900 dark:text-white">{statusCounts.rejected}</p>
               </div>
             </div>
-          </div>
+          </button>
         </div>
 
         {/* Applications List */}
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-              All Applications ({applications.length})
+              Applications ({filteredApplications.length})
             </h2>
           </div>
 
           <div className="divide-y divide-gray-200 dark:divide-gray-700">
-            {applications.length === 0 ? (
+            {filteredApplications.length === 0 ? (
               <div className="px-6 py-12 text-center">
                 <BriefcaseIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
@@ -234,7 +320,7 @@ export default function AdminDashboardPage() {
                 </p>
               </div>
             ) : (
-              applications.map((application) => (
+              filteredApplications.map((application) => (
                 <div key={application.id} className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
@@ -285,7 +371,7 @@ export default function AdminDashboardPage() {
                       
                       <a
                         href={`/dashboard/applications/${application.id}`}
-                        className="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                        className="inline-flex items-center px-3 py-1.5 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 transition-colors font-medium"
                       >
                         <EyeIcon className="w-4 h-4 mr-1" />
                         View Details
@@ -298,6 +384,7 @@ export default function AdminDashboardPage() {
           </div>
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

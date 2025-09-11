@@ -1,86 +1,56 @@
-import { MongoClient } from 'mongodb';
-import { prisma, connectToDatabase, disconnectFromDatabase } from './db';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient({
+  log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+});
 
 /**
- * Initialize the database connection and perform any necessary setup
+ * Initialize the database and perform any necessary setup
  * This function should be called when the application starts
  */
 export async function initializeDatabase() {
   try {
-    // Check if MongoDB is available
-    try {
-      // First try to connect using Prisma
-      await connectToDatabase();
-      
-      // Check if we have a valid DATABASE_URL
-      if (!process.env.DATABASE_URL) {
-        console.warn('No DATABASE_URL found, using mock data mode');
-        return true;
-      }
-      
-      // Then connect to the database using MongoDB driver directly for collection setup
-      const mongoUrl = process.env.DATABASE_URL;
-      const client = new MongoClient(mongoUrl);
-      await client.connect();
-      
-      // Get the database name from the connection string
-      const dbName = mongoUrl.split('/').pop()?.split('?')[0] || 'onlyinternship';
-      const db = client.db(dbName);
-      
-      // Create collections if they don't exist
-      const collections = [
-        'User',
-        'Profile',
-        'Company',
-        'Internship',
-        'Application',
-        'Account',
-        'Session',
-        'VerificationToken'
-      ];
-      
-      for (const collection of collections) {
-        const exists = await db.listCollections({ name: collection }).hasNext();
-        if (!exists) {
-          await db.createCollection(collection);
-          console.log(`Created collection: ${collection}`);
-        }
-      }
-      
-      // Close the MongoDB client connection
-      await client.close();
-      
-      // Set up event listeners for graceful shutdown
-      process.on('SIGINT', handleShutdown);
-      process.on('SIGTERM', handleShutdown);
-      process.on('exit', handleShutdown);
-      
-      console.log('Database initialized successfully');
+    // Check if we have a valid DATABASE_URL
+    if (!process.env.DATABASE_URL) {
+      console.warn('No DATABASE_URL found, using mock data mode');
       return true;
-    } catch (dbError) {
-      console.warn('MongoDB connection failed, falling back to mock data:', dbError);
-      return true; // Return true so the app continues to function with mock data
     }
+
+    // Test the database connection
+    await prisma.$connect();
+    
+    // Check if the database is accessible by querying a simple table
+    await prisma.user.findFirst();
+    
+    console.log('Database connection and setup completed successfully');
+    return true;
   } catch (error) {
-    console.error('Failed to initialize database:', error);
-    return true; // Return true to allow app to continue with mock data
+    console.error('Error initializing database:', error);
+    return false;
   }
 }
 
-// Handle graceful shutdown
+/**
+ * Handle graceful shutdown
+ */
 async function handleShutdown() {
-  console.log('Shutting down database connection...');
-  try {
-    await disconnectFromDatabase();
-    console.log('Database connection closed successfully');
-  } catch (error) {
-    console.error('Error closing database connection:', error);
-  }
+  // Close database connection
+  await prisma.$disconnect().catch(console.error);
+  
+  // Add any other cleanup tasks here
+  process.exit(0);
 }
 
-// Main function to run when this script is executed directly
+// Handle process termination
+process.on('SIGTERM', handleShutdown);
+process.on('SIGINT', handleShutdown);
+
+/**
+ * Main function to run when this script is executed directly
+ */
 async function main() {
   const success = await initializeDatabase();
+  await prisma.$disconnect();
   process.exit(success ? 0 : 1);
 }
 

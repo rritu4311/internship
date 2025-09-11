@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import { MongoClient } from 'mongodb';
+import bcrypt from 'bcryptjs';
 
 console.log('Environment variables loaded:');
 console.log('DATABASE_URL:', process.env.DATABASE_URL);
@@ -16,7 +17,62 @@ export async function seedDatabase() {
     await client.connect();
     console.log('✅ Connected to MongoDB');
     
-    const db = client.db('onlyinternship_dummy');
+    const db = client.db('onlyinternship');
+    
+    // Hash passwords
+    const [superAdminPassword, adminPassword, userPassword] = await Promise.all([
+      bcrypt.hash('superadmin123', 10),
+      bcrypt.hash('admin123', 10),
+      bcrypt.hash('user123', 10),
+    ]);
+    
+    // Create or update users
+    const usersCollection = db.collection('User');
+    
+    // Ensure Super Admin
+    let superAdmin = await usersCollection.findOne({ email: 'superadmin@onlyinternship.in' });
+    if (!superAdmin) {
+      const res = await usersCollection.insertOne({
+        name: 'Super Admin',
+        email: 'superadmin@onlyinternship.in',
+        password: superAdminPassword,
+        role: 'superadmin',
+        emailVerified: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      superAdmin = await usersCollection.findOne({ _id: res.insertedId });
+    }
+    
+    // Ensure Admin
+    let admin = await usersCollection.findOne({ email: 'admin@onlyinternship.in' });
+    if (!admin) {
+      const res = await usersCollection.insertOne({
+        name: 'Admin User',
+        email: 'admin@onlyinternship.in',
+        password: adminPassword,
+        role: 'admin',
+        emailVerified: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      admin = await usersCollection.findOne({ _id: res.insertedId });
+    }
+    
+    // Ensure Regular User
+    let user = await usersCollection.findOne({ email: 'user@onlyinternship.in' });
+    if (!user) {
+      const res = await usersCollection.insertOne({
+        name: 'Regular User',
+        email: 'user@onlyinternship.in',
+        password: userPassword,
+        role: 'user',
+        emailVerified: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      user = await usersCollection.findOne({ _id: res.insertedId });
+    }
     
     // Create sample companies
     const companiesCollection = db.collection('Company');

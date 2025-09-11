@@ -8,7 +8,8 @@ import {
   ExclamationTriangleIcon,
   InformationCircleIcon,
   CheckCircleIcon,
-  XCircleIcon
+  XCircleIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline';
 import Header from '@/components/Header';
 
@@ -24,6 +25,7 @@ export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
   const [markingAsRead, setMarkingAsRead] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   useEffect(() => {
     fetchNotifications();
@@ -36,7 +38,12 @@ export default function NotificationsPage() {
       const data = await response.json();
       
       if (data.success) {
-        setNotifications(data.data || []);
+        // Normalize createdAt to string for rendering
+        const normalized = (data.data || []).map((n: any) => ({
+          ...n,
+          createdAt: typeof n.createdAt === 'string' ? n.createdAt : new Date(n.createdAt).toISOString(),
+        }));
+        setNotifications(normalized);
       } else {
         console.error('Error fetching notifications:', data.error);
       }
@@ -72,6 +79,8 @@ export default function NotificationsPage() {
               true
           }))
         );
+        // Notify other UI (Header bell) to refresh unread count
+        window.dispatchEvent(new Event('notifications-updated'));
       } else {
         console.error('Error marking notifications as read:', data.error);
       }
@@ -88,6 +97,38 @@ export default function NotificationsPage() {
 
   const markSingleAsRead = (notificationId: string) => {
     markAsRead([notificationId]);
+  };
+
+  const deleteNotification = async (notificationId: string) => {
+    try {
+      setDeleting(notificationId);
+      const response = await fetch('/api/notifications', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          notificationIds: [notificationId],
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        // Remove from local state
+        setNotifications(prev => prev.filter(n => n.id !== notificationId));
+        // Notify other UI (Header bell) to refresh unread count
+        window.dispatchEvent(new Event('notifications-updated'));
+      } else {
+        console.error('Error deleting notification:', data.error);
+        alert('Failed to delete notification');
+      }
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+      alert('Failed to delete notification');
+    } finally {
+      setDeleting(null);
+    }
   };
 
   const getNotificationIcon = (type: string) => {
@@ -221,15 +262,25 @@ export default function NotificationsPage() {
                         </p>
                       </div>
                       
-                      {!notification.read && (
+                      <div className="flex items-center space-x-2 ml-4">
+                        {!notification.read && (
+                          <button
+                            onClick={() => markSingleAsRead(notification.id)}
+                            className="flex-shrink-0 p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                            title="Mark as read"
+                          >
+                            <XMarkIcon className="w-4 h-4 text-gray-400" />
+                          </button>
+                        )}
                         <button
-                          onClick={() => markSingleAsRead(notification.id)}
-                          className="ml-4 flex-shrink-0 p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                          title="Mark as read"
+                          onClick={() => deleteNotification(notification.id)}
+                          disabled={deleting === notification.id}
+                          className="flex-shrink-0 p-1 rounded-full hover:bg-red-100 dark:hover:bg-red-900/20 transition-colors disabled:opacity-50"
+                          title="Delete notification"
                         >
-                          <XMarkIcon className="w-4 h-4 text-gray-400" />
+                          <TrashIcon className="w-4 h-4 text-red-500" />
                         </button>
-                      )}
+                      </div>
                     </div>
                   </div>
                   

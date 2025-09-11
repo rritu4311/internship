@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getServerSession } from 'next-auth/next';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { useSession } from 'next-auth/react';
 import { 
   ArrowLeftIcon, 
   UserIcon, 
@@ -44,56 +43,68 @@ export default function ApplicationDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [userRole, setUserRole] = useState<string>('');
+  const { data: session, status } = useSession();
 
   useEffect(() => {
-    fetchApplicationDetails();
-    fetchUserRole();
-  }, [applicationId]);
-
-  const fetchUserRole = async () => {
-    try {
-      const response = await fetch('/api/user');
-      const data = await response.json();
-      if (data.success) {
-        setUserRole(data.data?.user?.role || '');
-      }
-    } catch (error) {
-      console.error('Error fetching user role:', error);
+    if (status === 'unauthenticated') {
+      router.push('/auth/signin');
+      return;
     }
-  };
+    
+    if (status === 'authenticated' && session?.user) {
+      setUserRole((session.user as any)?.role || '');
+      fetchApplicationDetails();
+    }
+  }, [applicationId, status, session]);
 
   const fetchApplicationDetails = async () => {
+    if (!session?.user?.email) {
+      console.error('No user session found');
+      return;
+    }
+
     try {
       setLoading(true);
-      const response = await fetch(`/api/applications/${applicationId}`);
-      const data = await response.json();
+      const response = await fetch(`/api/applications/${applicationId}`, {
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        credentials: 'include' // This will include the session cookie
+      });
       
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to fetch application details');
+      }
+      
+      const data = await response.json();
       if (data.success) {
         setApplication(data.data);
       } else {
-        console.error('Error fetching application:', data.error);
+        throw new Error(data.error || 'Invalid response format');
       }
     } catch (error) {
-      console.error('Error fetching application details:', error);
+      console.error('Error fetching application:', error);
+      // Show error message to user
+      alert(error instanceof Error ? error.message : 'An error occurred');
+      router.push('/dashboard/applications');
     } finally {
       setLoading(false);
     }
   };
 
   const updateApplicationStatus = async (newStatus: string) => {
-    if (!application) return;
+    if (!application || !session) return;
     
     try {
       setUpdating(true);
-      const response = await fetch('/api/applications', {
-        method: 'PATCH',
+      const response = await fetch(`/api/applications/${application.id}`, {
+        method: 'PUT',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          applicationId: application.id,
-          status: newStatus,
-        }),
+        credentials: 'include',
+        body: JSON.stringify({ status: newStatus }),
       });
 
       const data = await response.json();
@@ -102,6 +113,8 @@ export default function ApplicationDetailsPage() {
         setApplication(prev => prev ? { ...prev, status: newStatus, lastUpdated: new Date().toISOString() } : null);
         // Show success message
         alert(`Application status updated to ${newStatus}`);
+        // Optionally refetch to sync any other fields
+        fetchApplicationDetails();
       } else {
         alert(`Error: ${data.error}`);
       }
@@ -120,6 +133,7 @@ export default function ApplicationDetailsPage() {
       case 'interviewed': return 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-300';
       case 'accepted': return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300';
       case 'rejected': return 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300';
+      case 'withdrawn': return 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300';
       default: return 'bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300';
     }
   };
@@ -131,6 +145,7 @@ export default function ApplicationDetailsPage() {
       case 'interviewed': return <EyeIcon className="w-4 h-4" />;
       case 'accepted': return <CheckCircleIcon className="w-4 h-4" />;
       case 'rejected': return <XCircleIcon className="w-4 h-4" />;
+      case 'withdrawn': return <XCircleIcon className="w-4 h-4" />;
       default: return <ClockIcon className="w-4 h-4" />;
     }
   };
@@ -153,22 +168,39 @@ export default function ApplicationDetailsPage() {
           { action: 'rejected', label: 'Reject', color: 'bg-red-600 hover:bg-red-700' }
         ];
       case 'accepted':
-        return []; // No further actions after acceptance
       case 'rejected':
-        return []; // No actions after rejection
+      case 'withdrawn':
+        return []; // No further actions for terminal states
       default:
         return [];
     }
   };
 
-  if (loading) {
+  // Add debug logging
+  console.log('Session:', {
+    user: session?.user,
+    applicationUser: application?.user,
+    isOwner: application?.user?.id === (session?.user as any)?.id || 
+             application?.user?.email === session?.user?.email,
+    isAdmin: userRole === 'admin' || userRole === 'superadmin'
+  });
+
+  if (status === 'loading' || loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
       </div>
     );
   }
 
+  if (!session?.user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p>Redirecting to login...</p>
+      </div>
+    );
+  }
+  
   if (!application) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
@@ -185,13 +217,19 @@ export default function ApplicationDetailsPage() {
     );
   }
 
-  // Check if user is admin or superadmin
-  if (userRole !== 'admin' && userRole !== 'superadmin') {
+  // Check if user has permission to view this application
+  const isAdmin = userRole === 'admin' || userRole === 'superadmin';
+  const isOwner = application.user.id === (session?.user as any)?.id || 
+                 application.user.email === session?.user?.email;
+  
+  if (!isAdmin && !isOwner) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Access Denied</h1>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">Only admins can view application details.</p>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            {session?.user ? 'You are not authorized to view this application.' : 'Please sign in to view this application.'}
+          </p>
           <button
             onClick={() => router.back()}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -202,6 +240,33 @@ export default function ApplicationDetailsPage() {
       </div>
     );
   }
+  
+  // Handle withdraw application
+  const handleWithdraw = async () => {
+    if (window.confirm('Are you sure you want to withdraw your application? This action cannot be undone.')) {
+      try {
+        const response = await fetch(`/api/applications/${application.id}`, {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          alert('Application withdrawn successfully');
+          router.push('/dashboard/applications');
+        } else {
+          alert(data.error || 'Failed to withdraw application');
+        }
+      } catch (error) {
+        console.error('Error withdrawing application:', error);
+        alert('An error occurred while withdrawing your application');
+      }
+    }
+  };
 
   const availableActions = getAvailableActions(application.status);
 
@@ -228,11 +293,24 @@ export default function ApplicationDetailsPage() {
               </p>
             </div>
             
-            <div className="flex items-center space-x-2">
-              {getStatusIcon(application.status)}
-              <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(application.status)}`}>
-                {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
-              </span>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                {getStatusIcon(application.status)}
+                <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(application.status)}`}>
+                  {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
+                </span>
+              </div>
+              
+              {/* Withdraw button for students */}
+              {userRole === 'student' && !['withdrawn', 'rejected', 'accepted'].includes(application.status) && (
+                <button
+                  onClick={handleWithdraw}
+                  disabled={updating}
+                  className="px-4 py-1.5 text-sm font-medium text-red-600 hover:text-white border border-red-600 hover:bg-red-600 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {updating ? 'Withdrawing...' : 'Withdraw Application'}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -337,8 +415,8 @@ export default function ApplicationDetailsPage() {
               </div>
             </div>
 
-            {/* Application Actions */}
-            {availableActions.length > 0 && (
+            {/* Application Actions - visible to admins only */}
+            {isAdmin && availableActions.length > 0 && (
               <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
                   <BriefcaseIcon className="w-5 h-5 mr-2" />
