@@ -42,28 +42,49 @@ export async function GET(request: NextRequest) {
     try {
       const session = await getServerSession(authOptions);
       if (session?.user?.email) {
-        const actor = await prisma.user.findUnique({ where: { email: session.user.email } });
+        const actor = await prisma.user.findUnique({ 
+          where: { email: session.user.email },
+          include: {
+            company: true  // Include the company relation
+          }
+        });
         
-        // Admin and superadmin can see all internships
-        if (actor?.role === 'admin' || actor?.role === 'superadmin') {
-          // No restrictions - they can see all internships
-        } else if (actor?.role === 'company') {
-          // Company users can only see their own company's internships
-          const companies = await prisma.company.findMany({ where: { ownerId: actor.id } });
-          const companyIds = companies.map((c: { id: string }) => c.id);
+        // Superadmin can see all internships
+        if (actor?.role === 'superadmin') {
+          // No restrictions - can see all internships
+        } 
+        // Admin and company users can only see their own company's internships
+        else if ((actor?.role === 'admin' || actor?.role === 'company') && actor.company) {
+          // Get the company where user is the owner
+          const company = await prisma.company.findUnique({
+            where: { id: actor.company.id }
+          });
           
-          if (where.companyId) {
-            // If specific companyId provided, check if it belongs to company user
-            if (!companyIds.includes(where.companyId)) {
-              where.companyId = { in: companyIds };
+          if (company) {
+            if (where.companyId) {
+              // If specific companyId provided, ensure it matches the user's company
+              if (where.companyId !== company.id) {
+                // If not, restrict to their company
+                where.companyId = company.id;
+              }
+            } else {
+              // No specific companyId provided, show only their company
+              where.companyId = company.id;
             }
           } else {
-            // No specific companyId provided, show only their companies
-            where.companyId = { in: companyIds };
+            // No company found for this user, return empty result
+            where.companyId = 'non-existent-id';
           }
+        } else if (actor?.role === 'admin' || actor?.role === 'company') {
+          // User has admin/company role but no associated company
+          where.companyId = 'non-existent-id';
         }
       }
-    } catch {}
+    } catch (error) {
+      console.error('Error in role-based access control:', error);
+      // In case of error, be safe and return no results
+      where.companyId = 'non-existent-id';
+    }
 
     // Fetch internships from database
     const internships = await prisma.internship.findMany({
