@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 
 export default function NewCompanyPage() {
+  const router = useRouter();
   const [form, setForm] = useState({
     name: '',
     description: '',
@@ -44,6 +46,11 @@ export default function NewCompanyPage() {
       const data = await resp.json();
       if (!data.success) throw new Error(data.error || 'Failed to create company');
       setSuccess('Company registered successfully');
+      
+      // Redirect to dashboard after successful creation
+      setTimeout(() => {
+        router.push('/dashboard');
+      }, 1000);
     } catch (err: any) {
       setError(err.message || 'Failed to create company');
     } finally {

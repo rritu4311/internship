@@ -27,47 +27,62 @@ async function main() {
       bcrypt.hash('user123', 10),
     ]);
 
-    // Ensure Super Admin
+    // Ensure/Correct Super Admin (idempotent + corrective)
+    await users.updateOne(
+      { email: 'superadmin@onlyinternship.in' },
+      {
+        $set: {
+          role: 'superadmin',
+          password: superAdminPassword,
+          updatedAt: new Date(),
+        },
+        $setOnInsert: {
+          name: 'Super Admin',
+          email: 'superadmin@onlyinternship.in',
+          createdAt: new Date(),
+        },
+      },
+      { upsert: true }
+    );
     let superAdmin = await users.findOne({ email: 'superadmin@onlyinternship.in' });
-    if (!superAdmin) {
-      const res = await users.insertOne({
-        name: 'Super Admin',
-        email: 'superadmin@onlyinternship.in',
-        password: superAdminPassword,
-        role: 'superadmin',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      superAdmin = await users.findOne({ _id: res.insertedId });
-    }
 
-    // Ensure Admin
+    // Ensure/Correct Admin (idempotent + corrective)
+    await users.updateOne(
+      { email: 'admin@onlyinternship.in' },
+      {
+        $set: {
+          role: 'admin',
+          password: adminPassword,
+          updatedAt: new Date(),
+        },
+        $setOnInsert: {
+          name: 'Admin User',
+          email: 'admin@onlyinternship.in',
+          createdAt: new Date(),
+        },
+      },
+      { upsert: true }
+    );
     let admin = await users.findOne({ email: 'admin@onlyinternship.in' });
-    if (!admin) {
-      const res = await users.insertOne({
-        name: 'Admin User',
-        email: 'admin@onlyinternship.in',
-        password: adminPassword,
-        role: 'admin',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      admin = await users.findOne({ _id: res.insertedId });
-    }
 
-    // Ensure Regular User
+    // Ensure/Correct Regular User (student role)
+    await users.updateOne(
+      { email: 'user@onlyinternship.in' },
+      {
+        $set: {
+          role: 'student',
+          password: userPassword,
+          updatedAt: new Date(),
+        },
+        $setOnInsert: {
+          name: 'Regular User',
+          email: 'user@onlyinternship.in',
+          createdAt: new Date(),
+        },
+      },
+      { upsert: true }
+    );
     let user = await users.findOne({ email: 'user@onlyinternship.in' });
-    if (!user) {
-      const res = await users.insertOne({
-        name: 'Regular User',
-        email: 'user@onlyinternship.in',
-        password: userPassword,
-        role: 'user',
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      });
-      user = await users.findOne({ _id: res.insertedId });
-    }
 
     // Ensure Profile for Regular User
     const existingProfile = await profiles.findOne({ userId: String(user!._id) });
@@ -86,7 +101,7 @@ async function main() {
       });
     }
 
-    // Ensure Company for Admin
+    // Ensure Company for Admin (store ownerId as ObjectId for Prisma compatibility)
     let company = await companies.findOne({ name: 'OnlyInternship Inc.' });
     if (!company) {
       const res = await companies.insertOne({
@@ -96,7 +111,7 @@ async function main() {
         location: 'Mumbai, India',
         industry: 'Education',
         size: '11-50',
-        ownerId: String(admin!._id),
+        ownerId: new ObjectId(String(admin!._id)),
         createdAt: new Date(),
         updatedAt: new Date(),
       });
@@ -104,12 +119,12 @@ async function main() {
     }
 
     // Ensure Internships
-    let marketing = await internships.findOne({ title: 'Marketing Intern', companyId: String(company!._id) });
+    let marketing = await internships.findOne({ title: 'Marketing Intern', companyId: new ObjectId(String(company!._id)) });
     if (!marketing) {
       const res = await internships.insertOne({
         title: 'Marketing Intern',
         description: 'Join our marketing team to help with digital campaigns and social media management.',
-        companyId: String(company!._id),
+        companyId: new ObjectId(String(company!._id)),
         location: 'Mumbai, India',
         locationType: 'hybrid',
         duration: 12,
@@ -134,12 +149,12 @@ async function main() {
       marketing = await internships.findOne({ _id: res.insertedId });
     }
 
-    let finance = await internships.findOne({ title: 'Finance Intern', companyId: String(company!._id) });
+    let finance = await internships.findOne({ title: 'Finance Intern', companyId: new ObjectId(String(company!._id)) });
     if (!finance) {
       const res = await internships.insertOne({
         title: 'Finance Intern',
         description: 'Work with our finance team on budgeting, forecasting, and financial analysis.',
-        companyId: String(company!._id),
+        companyId: new ObjectId(String(company!._id)),
         location: 'Remote',
         locationType: 'remote',
         duration: 8,
@@ -172,7 +187,7 @@ async function main() {
       await applications.insertOne({
         userId: String(user!._id),
         internshipId: String(marketing!._id),
-        status: 'pending',
+        status: 'applied',
         coverLetter: 'I am excited to apply for this internship!',
         resumeUrl: 'https://onlyinternship.in/resume/user.pdf',
         createdAt: new Date(),

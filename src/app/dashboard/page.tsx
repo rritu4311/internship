@@ -95,7 +95,6 @@ export default function DashboardPage() {
     ? [
         { id: 'company', name: 'My Company', icon: BriefcaseIcon },
         { id: 'internships', name: 'My Internships', icon: BriefcaseIcon },
-        { id: 'applications', name: 'Applications', icon: ChartBarIcon },
       ]
     : [
         { id: 'overview', name: 'Overview', icon: ChartBarIcon },
@@ -183,6 +182,34 @@ export default function DashboardPage() {
   
   console.log('Dashboard stats:', stats);
 
+  // Simple status icon using text instead of icons to avoid missing dependencies
+  const getStatusIcon = (status: string) => {
+    const iconMap: Record<string, string> = {
+      'applied': '🕒',
+      'shortlisted': '⭐',
+      'interviewed': '💬',
+      'accepted': '✅',
+      'rejected': '❌',
+    };
+    
+    const icon = iconMap[status] || '●';
+    const colorMap: Record<string, string> = {
+      'applied': 'text-blue-500',
+      'shortlisted': 'text-yellow-500',
+      'interviewed': 'text-purple-500',
+      'accepted': 'text-green-500',
+      'rejected': 'text-red-500',
+    };
+    
+    const color = colorMap[status] || 'text-gray-400';
+    
+    return (
+      <span className={`inline-block w-4 h-4 text-center ${color}`}>
+        {icon}
+      </span>
+    );
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'applied':
@@ -200,20 +227,32 @@ export default function DashboardPage() {
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'applied':
-        return <ClockIcon className="w-4 h-4" />;
-      case 'shortlisted':
-        return <StarIcon className="w-4 h-4" />;
-      case 'interviewed':
-        return <BriefcaseIcon className="w-4 h-4" />;
-      case 'accepted':
-        return <CheckCircleIcon className="w-4 h-4" />;
-      case 'rejected':
-        return <XCircleIcon className="w-4 h-4" />;
-      default:
-        return <ClockIcon className="w-4 h-4" />;
+  const withdrawApplication = async (applicationId: string) => {
+    if (!confirm('Are you sure you want to withdraw this application? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/applications/${applicationId}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Remove the application from local state
+        setUserData(prev => prev ? {
+          ...prev,
+          applications: prev.applications.filter(app => app.id !== applicationId)
+        } : null);
+        
+        alert('Application withdrawn successfully');
+      } else {
+        alert(`Error: ${data.error}`);
+      }
+    } catch (error) {
+      console.error('Error withdrawing application:', error);
+      alert('Error withdrawing application');
     }
   };
 
@@ -328,8 +367,11 @@ export default function DashboardPage() {
             >
               View Details
             </a>
-            {userData?.user?.role === 'student' && (
-              <button className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 text-sm">
+            {userData?.user?.role === 'student' && application.status === 'applied' && (
+              <button 
+                onClick={() => withdrawApplication(application.id)}
+                className="text-red-600 dark:text-red-400 hover:text-red-800 dark:hover:text-red-200 text-sm font-medium"
+              >
                 Withdraw Application
               </button>
             )}
@@ -552,7 +594,7 @@ export default function DashboardPage() {
               {(userData?.user?.role === 'admin' || userData?.user?.role === 'superadmin') && (
                 <a
                   href="/dashboard/admin"
-                  className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors flex items-center space-x-2"
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors flex items-center space-x-2 font-semibold"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />

@@ -23,6 +23,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 export default function DashboardHeader() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [userRole, setUserRole] = useState<string>('');
   const { theme, toggleTheme } = useTheme();
   const { data: session } = useSession();
 
@@ -35,11 +36,33 @@ export default function DashboardHeader() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const dashboardNavigation = [
+  // Fetch user role
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      if (session?.user?.email) {
+        try {
+          const response = await fetch('/api/user');
+          const data = await response.json();
+          if (data.success) {
+            setUserRole(data.data?.user?.role || '');
+          }
+        } catch (error) {
+          console.error('Error fetching user role:', error);
+        }
+      }
+    };
+
+    fetchUserRole();
+  }, [session]);
+
+  const allNavigation = [
     { name: 'Overview', href: '#overview', icon: ChartBarIcon },
     { name: 'Applications', href: '#applications', icon: BriefcaseIcon },
     { name: 'Profile', href: '#profile', icon: UserGroupIcon },
   ];
+  const dashboardNavigation = (userRole === 'admin' || userRole === 'superadmin')
+    ? allNavigation.filter(item => item.name !== 'Applications')
+    : allNavigation;
 
   return (
     <>
@@ -60,7 +83,7 @@ export default function DashboardHeader() {
                   <span className="text-white font-bold text-sm">OI</span>
                 </motion.div>
                 <span className="text-xl font-bold text-gray-900 dark:text-white">
-                  OnlyInternship.in
+                  {userRole === 'admin' || userRole === 'superadmin' ? 'Admin | OnlyInternship.in' : 'OnlyInternship.in'}
                 </span>
               </Link>
               
@@ -80,7 +103,7 @@ export default function DashboardHeader() {
                 <a
                   key={item.name}
                   href={item.href}
-                  className="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
+                  className="flex items-center space-x-2 text-gray-800 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors font-semibold"
                 >
                   <item.icon className="w-4 h-4" />
                   <span>{item.name}</span>
@@ -189,7 +212,7 @@ export default function DashboardHeader() {
                   <a
                     key={item.name}
                     href={item.href}
-                    className="flex items-center space-x-3 px-3 py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors rounded-lg"
+                    className="flex items-center space-x-3 px-3 py-2 text-gray-800 dark:text-gray-200 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors rounded-lg font-semibold"
                   >
                     <item.icon className="w-5 h-5" />
                     <span>{item.name}</span>

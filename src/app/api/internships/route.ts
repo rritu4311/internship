@@ -38,17 +38,29 @@ export async function GET(request: NextRequest) {
       where.companyId = companyId;
     }
 
-    // Admin restriction: only their company internships
+    // Role-based access control
     try {
       const session = await getServerSession(authOptions);
       if (session?.user?.email) {
         const actor = await prisma.user.findUnique({ where: { email: session.user.email } });
-        if (actor?.role === 'admin') {
-          // allow explicit companyId override only if it belongs to admin
+        
+        // Admin and superadmin can see all internships
+        if (actor?.role === 'admin' || actor?.role === 'superadmin') {
+          // No restrictions - they can see all internships
+        } else if (actor?.role === 'company') {
+          // Company users can only see their own company's internships
           const companies = await prisma.company.findMany({ where: { ownerId: actor.id } });
-          const adminCompanyIds = new Set(companies.map((c) => c.id));
-          const effectiveId = where.companyId && adminCompanyIds.has(where.companyId) ? where.companyId : (companies[0]?.id);
-          if (effectiveId) where.companyId = effectiveId;
+          const companyIds = companies.map((c: { id: string }) => c.id);
+          
+          if (where.companyId) {
+            // If specific companyId provided, check if it belongs to company user
+            if (!companyIds.includes(where.companyId)) {
+              where.companyId = { in: companyIds };
+            }
+          } else {
+            // No specific companyId provided, show only their companies
+            where.companyId = { in: companyIds };
+          }
         }
       }
     } catch {}
@@ -70,7 +82,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Format internships for frontend
-    let formattedInternships = internships.map(internship => ({
+    let formattedInternships = internships.map((internship: any) => ({
         id: internship.id,
         companyId: internship.companyId,
         title: internship.title,
@@ -152,46 +164,102 @@ export async function POST(request: NextRequest) {
         );
     }
 
-    // Role enforcement: admin can only post for their company
+    // Role enforcement: admin can only post for their companies
     if (actor.role === 'admin') {
-      const company = await prisma.company.findFirst({ where: { ownerId: actor.id } });
-      if (!company || company.id !== companyId) {
-        return NextResponse.json({ success: false, error: 'Admins can only post for their own company' }, { status: 403 });
+      const companies = await prisma.company.findMany({ where: { ownerId: actor.id } });
+      const adminCompanyIds = companies.map((c: { id: string }) => c.id);
+      if (!adminCompanyIds.includes(companyId)) {
+        return NextResponse.json({ success: false, error: 'Admins can only post for their own companies' }, { status: 403 });
       }
     } else if (actor.role !== 'superadmin') {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
     }
 
-    // Create internship in database
-    const internship = await prisma.internship.create({
-          data: {
-        title,
-        description,
-        companyId,
-        location,
-        locationType: locationType || 'onsite',
-        duration: parseInt(duration),
-        stipend: stipend ? parseInt(stipend) : null,
-        skills: skills || [],
-        responsibilities: responsibilities || [],
-        qualifications: qualifications || [],
-        startDate: startDate ? new Date(startDate) : null,
-        applicationDeadline: applicationDeadline ? new Date(applicationDeadline) : null,
+    // Create internship in database (Prisma first, then Mongo fallback)
+    try {
+      // Optional existence check for company in Prisma
+      const companyCheck = await prisma.company.findUnique({ where: { id: companyId } });
+      if (!companyCheck) {
+        // Try Mongo to see if company exists with ObjectId
+        try {
+          const client = new MongoClient(process.env.DATABASE_URL!);
+          await client.connect();
+          const url = new URL(process.env.DATABASE_URL!);
+          const dbName = (url.pathname || '').replace(/^\//, '') || 'onlyinternship';
+          const db = client.db(dbName);
+          const companiesCol = db.collection('Company');
+          const maybeCompany = await companiesCol.findOne({ _id: new ObjectId(companyId) });
+          await client.close();
+          if (!maybeCompany) {
+            return NextResponse.json({ success: false, error: 'Company not found' }, { status: 404 });
+          }
+        } catch (cmpErr) {
+          console.error('Company existence check error:', cmpErr);
+        }
+      }
+
+      const internship = await prisma.internship.create({
+        data: {
+          title,
+          description,
+          companyId,
+          location,
+          locationType: locationType || 'onsite',
+          duration: Number(duration),
+          stipend: stipend !== null && stipend !== undefined && stipend !== '' ? Number(stipend) : null,
+          skills: Array.isArray(skills) ? skills : (skills ? skills : []),
+          responsibilities: Array.isArray(responsibilities) ? responsibilities : [],
+          qualifications: Array.isArray(qualifications) ? qualifications : [],
+          startDate: startDate ? new Date(startDate) : null,
+          applicationDeadline: applicationDeadline ? new Date(applicationDeadline) : null,
         },
         include: {
-        company: {
-          select: {
-            name: true,
+          company: {
+            select: { name: true },
           },
         },
-      },
-    });
-      
-      return NextResponse.json({
-        success: true,
-      data: internship,
-      message: 'Internship created successfully',
-    });
+      });
+
+      return NextResponse.json({ success: true, data: internship, message: 'Internship created successfully' });
+    } catch (prismaCreateErr) {
+      console.error('Prisma create internship failed:', prismaCreateErr);
+      // Mongo fallback
+      try {
+        const client = new MongoClient(process.env.DATABASE_URL!);
+        await client.connect();
+        const url = new URL(process.env.DATABASE_URL!);
+        const dbName = (url.pathname || '').replace(/^\//, '') || 'onlyinternship';
+        const db = client.db(dbName);
+        const internshipsCol = db.collection('Internship');
+        const doc = {
+          title,
+          description,
+          companyId: new ObjectId(companyId),
+          location,
+          locationType: locationType || 'onsite',
+          duration: Number(duration),
+          stipend: stipend !== null && stipend !== undefined && stipend !== '' ? Number(stipend) : null,
+          skills: Array.isArray(skills) ? skills : (skills ? skills : []),
+          responsibilities: Array.isArray(responsibilities) ? responsibilities : [],
+          qualifications: Array.isArray(qualifications) ? qualifications : [],
+          startDate: startDate ? new Date(startDate) : null,
+          applicationDeadline: applicationDeadline ? new Date(applicationDeadline) : null,
+          status: 'open',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+        const insert = await internshipsCol.insertOne(doc);
+        await client.close();
+        return NextResponse.json({
+          success: true,
+          data: { id: String(insert.insertedId), ...doc },
+          message: 'Internship created successfully (Mongo)'
+        });
+      } catch (mongoCreateErr) {
+        console.error('Mongo create internship failed:', mongoCreateErr);
+        return NextResponse.json({ success: false, error: 'Failed to create internship' }, { status: 500 });
+      }
+    }
 
   } catch (error) {
     console.error('Error creating internship:', error);

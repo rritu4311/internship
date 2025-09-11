@@ -68,11 +68,12 @@ export default function InternshipsPage() {
   const router = useRouter();
   const [selectedCompany, setSelectedCompany] = useState<string | null>(null);
   const [isAdminContext, setIsAdminContext] = useState(false);
+  const [companies, setCompanies] = useState<{ id: string; name: string }[]>([]);
 
   const locations = ['New York, NY', 'San Francisco, CA', 'Chicago, IL', 'Austin, TX', 'Remote'];
   const types = ['Full-time', 'Part-time', 'Remote', 'Hybrid'];
 
-  // Check for company query param and admin context (show only own company's internships)
+  // Check for company query param and determine admin context. Also load companies for selector.
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const companyId = urlParams.get('company');
@@ -85,14 +86,12 @@ export default function InternshipsPage() {
         const data = await res.json();
         if (data?.success && (data.data?.user?.role === 'admin' || data.data?.user?.role === 'superadmin')) {
           setIsAdminContext(true);
-          // Prefer first owned company if none from query
-          const companies = data.data?.companies || [];
-          if (!companyId && companies.length > 0 && companies[0]?.id) {
-            setSelectedCompany(companies[0].id);
-          } else if (!companyId && data.data?.company?.id) {
-            // legacy single company shape fallback
-            setSelectedCompany(data.data.company.id);
-          }
+          const owned = (data.data?.companies || []).map((c: any) => ({ id: c.id, name: c.name }));
+          setCompanies(owned);
+        } else if (data?.success && data.data?.companies) {
+          // company-role or others with companies in response
+          const owned = (data.data?.companies || []).map((c: any) => ({ id: c.id, name: c.name }));
+          setCompanies(owned);
         }
       } catch {}
     })();
@@ -354,6 +353,19 @@ export default function InternshipsPage() {
           {/* Search and Filters */}
           <div className="bg-white dark:bg-gray-800 rounded-xl p-6 mb-8 shadow-sm border border-gray-200 dark:border-gray-700">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* Company Filter (visible for admins and when companies are available) */}
+              {(isAdminContext && companies.length > 0) && (
+                <select
+                  value={selectedCompany || ''}
+                  onChange={(e) => setSelectedCompany(e.target.value || null)}
+                  className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
+                >
+                  <option value="">All Companies</option>
+                  {companies.map((c) => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              )}
               {/* Search */}
               <div className="relative">
                 <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
@@ -396,6 +408,7 @@ export default function InternshipsPage() {
                   setSearchTerm('');
                   setSelectedLocation('');
                   setSelectedType('');
+                  // Do not clear selectedCompany implicitly to avoid surprising admin filters
                 }}
                 className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
               >

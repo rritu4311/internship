@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Format companies for frontend
-    let formattedCompanies = companies.map(company => ({
+    let formattedCompanies = companies.map((company: any) => ({
       id: company.id,
       name: company.name,
       description: company.description,
@@ -134,25 +134,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Role enforcement
+    // Role enforcement - allow admins to create multiple companies for themselves only; superadmin can create for admins
     if (actor.role === 'admin') {
-      // Admin can only create a company for themselves and only one
-      const existing = await prisma.company.findFirst({ where: { ownerId: actor.id } });
-      if (existing) {
-        return NextResponse.json({ success: false, error: 'Company already exists for this admin' }, { status: 400 });
-      }
       if (ownerId !== actor.id) {
-        return NextResponse.json({ success: false, error: 'Admins can only create company for themselves' }, { status: 403 });
+        return NextResponse.json({ success: false, error: 'Admins can only create companies for themselves' }, { status: 403 });
       }
+      // No limit on number of companies for an admin
     } else if (actor.role === 'superadmin') {
-      // Superadmin can create for admins only
       const owner = await prisma.user.findUnique({ where: { id: ownerId } });
       if (!owner || owner.role !== 'admin') {
         return NextResponse.json({ success: false, error: 'ownerId must be an admin user' }, { status: 400 });
-      }
-      const existing = await prisma.company.findFirst({ where: { ownerId } });
-      if (existing) {
-        return NextResponse.json({ success: false, error: 'Company already exists for this admin' }, { status: 400 });
       }
     } else {
       return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });

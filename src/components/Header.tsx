@@ -30,6 +30,7 @@ export default function Header({ onSearch }: HeaderProps) {
   const { data: session } = useSession();
   const [applicationsCount, setApplicationsCount] = useState<number>(0);
   const [unreadNotifications, setUnreadNotifications] = useState<number>(0);
+  const [userRole, setUserRole] = useState<string>('');
 
   // Handle scroll effect
   useEffect(() => {
@@ -53,17 +54,40 @@ export default function Header({ onSearch }: HeaderProps) {
     fetchApplications();
   }, [session?.user?.email]);
 
+  // Expose a stable function to fetch notifications so we can call it from an event listener
+  const fetchNotifications = async () => {
+    try {
+      const res = await fetch('/api/notifications');
+      const data = await res.json();
+      if (data?.success && Array.isArray(data.data)) {
+        setUnreadNotifications(data.data.filter((n: any) => !n.read).length);
+      }
+    } catch {}
+  };
+
   useEffect(() => {
-    const fetchNotifications = async () => {
+    fetchNotifications();
+  }, [session?.user?.email]);
+
+  // Listen to global notification updates to keep the bell count in sync
+  useEffect(() => {
+    const handler = () => fetchNotifications();
+    window.addEventListener('notifications-updated', handler as any);
+    return () => window.removeEventListener('notifications-updated', handler as any);
+  }, []);
+
+  // Fetch user role for conditional brand text
+  useEffect(() => {
+    const fetchUserRole = async () => {
       try {
-        const res = await fetch('/api/notifications');
+        const res = await fetch('/api/user');
         const data = await res.json();
-        if (data?.success && Array.isArray(data.data)) {
-          setUnreadNotifications(data.data.filter((n: any) => !n.read).length);
+        if (data?.success) {
+          setUserRole(data.data?.user?.role || '');
         }
       } catch {}
     };
-    fetchNotifications();
+    fetchUserRole();
   }, [session?.user?.email]);
 
   const handleSearch = (e: React.FormEvent) => {
@@ -102,7 +126,7 @@ export default function Header({ onSearch }: HeaderProps) {
               >
               </motion.div>
               <span className="text-xl font-bold text-gray-900 dark:text-white" style={{ marginRight:'3rem',marginLeft:'-3.6rem' }}>
-                OnlyInternship.in
+              {userRole !== 'admin' ? 'OnlyInternship.in' : 'Admin|OnlyInternship.in'}
               </span>
             </Link>
 
@@ -166,9 +190,9 @@ export default function Header({ onSearch }: HeaderProps) {
                 >
                   <BellIcon className="w-5 h-5" />
                 </Link>
-                {(applicationsCount > 0 || unreadNotifications > 0) && (
+                {unreadNotifications > 0 && (
                   <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs rounded-full px-1.5 py-0.5">
-                    {unreadNotifications || applicationsCount}
+                    {unreadNotifications}
                   </span>
                 )}
               </div>
@@ -244,9 +268,9 @@ export default function Header({ onSearch }: HeaderProps) {
                   >
                     <BellIcon className="w-4 h-4" />
                     <span>Notifications</span>
-                    {(applicationsCount > 0 || unreadNotifications > 0) && (
+                    {unreadNotifications > 0 && (
                       <span className="bg-red-600 text-white text-xs rounded-full px-1.5 py-0.5">
-                        {unreadNotifications || applicationsCount}
+                        {unreadNotifications}
                       </span>
                     )}
                   </Link>
