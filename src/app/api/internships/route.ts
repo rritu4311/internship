@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
       where.companyId = companyId;
     }
 
-    // Role-based access control
+    // Role-based access control - only apply restrictions for admin/company dashboard views
     try {
       const session = await getServerSession(authOptions);
       if (session?.user?.email) {
@@ -49,41 +49,40 @@ export async function GET(request: NextRequest) {
           }
         });
         
-        // Superadmin can see all internships
-        if (actor?.role === 'superadmin') {
-          // No restrictions - can see all internships
-        } 
-        // Admin and company users can only see their own company's internships
-        else if ((actor?.role === 'admin' || actor?.role === 'company') && actor.company) {
-          // Get the company where user is the owner
-          const company = await prisma.company.findUnique({
-            where: { id: actor.company.id }
-          });
-          
-          if (company) {
-            if (where.companyId) {
-              // If specific companyId provided, ensure it matches the user's company
-              if (where.companyId !== company.id) {
+        // Only apply role-based restrictions if this is an admin/company user viewing their dashboard
+        // and a specific companyId is provided (indicating dashboard view)
+        if (companyId && (actor?.role === 'admin' || actor?.role === 'company')) {
+          // Admin and company users can only see their own company's internships when viewing dashboard
+          if (actor.company) {
+            const company = await prisma.company.findUnique({
+              where: { id: actor.company.id }
+            });
+            
+            if (company) {
+              // Ensure the requested companyId matches the user's company
+              if (companyId !== company.id) {
                 // If not, restrict to their company
                 where.companyId = company.id;
               }
             } else {
-              // No specific companyId provided, show only their company
-              where.companyId = company.id;
+              // No company found for this user, return empty result
+              where.companyId = 'non-existent-id';
             }
           } else {
-            // No company found for this user, return empty result
+            // User has admin/company role but no associated company
             where.companyId = 'non-existent-id';
           }
-        } else if (actor?.role === 'admin' || actor?.role === 'company') {
-          // User has admin/company role but no associated company
-          where.companyId = 'non-existent-id';
         }
+        // For public viewing (no companyId filter) or superadmin, show all open internships
+        // This allows all users (including anonymous) to see all open internships on the main page
       }
     } catch (error) {
       console.error('Error in role-based access control:', error);
-      // In case of error, be safe and return no results
-      where.companyId = 'non-existent-id';
+      // In case of error, don't restrict access for public viewing
+      if (companyId) {
+        // Only restrict if specific company was requested
+        where.companyId = 'non-existent-id';
+      }
     }
 
     // Fetch internships from database
