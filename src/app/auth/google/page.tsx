@@ -24,21 +24,21 @@ export default function GoogleAuth() {
   }, [router]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-gray-900">
-      <div className="max-w-md w-full p-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background">
+      <div className="max-w-md w-full p-8 bg-card rounded-lg shadow-lg">
         <div className="flex flex-col items-center space-y-6">
           <Image src="/google.svg" alt="Google" width={60} height={60} />
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white text-center">
+          <h1 className="text-2xl font-bold text-foreground text-center">
             Signing in with Google
           </h1>
-          <p className="text-gray-600 dark:text-gray-300 text-center">
+          <p className="text-secondary-foreground text-center">
             Please wait while we redirect you to Google for authentication...
           </p>
           <div className="w-full mt-4">
             <div className="relative pt-1">
-              <div className="overflow-hidden h-2 text-xs flex rounded bg-gray-200 dark:bg-gray-700">
+              <div className="overflow-hidden h-2 text-xs flex rounded bg-muted">
                 <div
-                  className="animate-pulse shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-primary-500"
+                  className="animate-pulse shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-primary"
                   style={{ width: '100%' }}
                 ></div>
               </div>

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, Poppins } from "next/font/google";
+import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from '@/contexts/ThemeContext';
-import ThemeIndicator from '@/components/ThemeIndicator';
 import { NextAuthProvider } from '@/lib/auth/provider';
 
 // Database initialization is handled in the db-initializer module
@@ -17,6 +17,11 @@ const poppins = Poppins({
   variable: "--font-poppins",
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-jetbrains-mono",
+  subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
@@ -40,14 +45,13 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${inter.variable} ${poppins.variable} antialiased`}
+        className={`${inter.variable} ${poppins.variable} ${jetbrainsMono.variable} antialiased`}
       >
         {/* Database initialization happens in this server component */}
         <DbInitializer />
         <NextAuthProvider>
           <ThemeProvider>
             {children}
-            <ThemeIndicator />
           </ThemeProvider>
         </NextAuthProvider>
       </body>

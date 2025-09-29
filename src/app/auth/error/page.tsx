@@ -2,9 +2,9 @@
 
 import { Suspense } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 function AuthErrorContent() {
-  const { useSearchParams } = require('next/navigation');
   const searchParams = useSearchParams();
   const error = searchParams.get('error');
 
@@ -70,55 +70,65 @@ function AuthErrorContent() {
   const errorInfo = getErrorMessage(error);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-gray-900">
-      <div className="max-w-md w-full p-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
-        <div className="flex flex-col items-center space-y-6">
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <div className="w-full max-w-md">
+        <div className="bg-card rounded-2xl shadow-xl overflow-hidden border-2 border-border/20 backdrop-blur-sm p-8 text-center">
           {/* Error Icon */}
-          <div className="w-16 h-16 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center">
-            <svg className="w-8 h-8 text-red-600 dark:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-pink-100 to-red-100 mb-6 shadow-inner">
+            <svg 
+              className="h-10 w-10 text-red-500" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" 
+              />
             </svg>
           </div>
 
           {/* Error Title */}
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white text-center">
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
             {errorInfo.title}
           </h1>
 
           {/* Error Message */}
-          <p className="text-gray-600 dark:text-gray-300 text-center">
+          <p className="text-secondary-foreground mb-6 text-lg">
             {errorInfo.message}
           </p>
 
           {/* Solution */}
-          <div className="w-full p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-            <p className="text-sm text-blue-800 dark:text-blue-200 text-center">
-              <strong>Solution:</strong> {errorInfo.solution}
+          <div className="mb-8 rounded-xl bg-secondary/50 p-5 text-left border border-border/50">
+            <p className="text-primary">
+              <span className="font-bold text-primary">Solution:</span> {errorInfo.solution}
             </p>
           </div>
 
           {/* Action Buttons */}
-          <div className="flex flex-col space-y-3 w-full">
+          <div className="space-y-4">
             <Link
               href="/auth/signin"
-              className="w-full flex items-center justify-center py-2.5 px-4 border border-transparent rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="block w-full py-3 px-6 rounded-xl bg-primary text-primary-foreground font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 hover:bg-primary-600"
             >
               Try Again
             </Link>
             
             <Link
               href="/"
-              className="w-full flex items-center justify-center py-2.5 px-4 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+              className="block w-full py-3 px-6 rounded-xl bg-card text-primary font-semibold border-2 border-border hover:border-primary shadow-md hover:shadow-lg transition-all duration-200"
             >
-              Go Home
+              Go to Homepage
             </Link>
           </div>
 
           {/* Debug Info (only in development) */}
           {process.env.NODE_ENV === 'development' && error && (
-            <div className="w-full p-3 bg-gray-100 dark:bg-gray-700 rounded-lg">
-              <p className="text-xs text-gray-600 dark:text-gray-400 text-center">
-                <strong>Debug:</strong> Error code: {error}
+            <div className="mt-8 p-4 rounded-xl bg-secondary/50 border border-border">
+              <p className="text-sm text-primary">
+                <span className="font-bold text-primary">Debug:</span> Error code: {error}
               </p>
             </div>
           )}
@@ -131,11 +141,11 @@ function AuthErrorContent() {
 export default function AuthError() {
   return (
     <Suspense fallback={
-      <div className="min-h-screen flex flex-col items-center justify-center bg-white dark:bg-gray-900">
-        <div className="max-w-md w-full p-8 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
+      <div className="flex min-h-screen items-center justify-center bg-background p-4">
+        <div className="w-full max-w-md p-8 bg-card rounded-2xl shadow-lg text-center">
           <div className="flex flex-col items-center space-y-6">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600"></div>
-            <p className="text-gray-600 dark:text-gray-300">Loading...</p>
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
+            <p className="text-primary font-medium">Loading...</p>
           </div>
         </div>
       </div>

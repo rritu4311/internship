@@ -111,10 +111,10 @@ export default function Header({ onSearch }: HeaderProps) {
 
   return (
     <>
-      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled 
-          ? 'bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-soft' 
-          : 'bg-white dark:bg-gray-900'
+      <header className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 shadow-lg ${
+        isScrolled
+          ? 'bg-secondary/95 backdrop-blur-md shadow-soft'
+          : 'bg-secondary'
       }`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
@@ -125,7 +125,7 @@ export default function Header({ onSearch }: HeaderProps) {
                 className="w-8 h-8 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center"
               >
               </motion.div>
-              <span className="text-xl font-bold text-gray-900 dark:text-white" style={{ marginRight:'3rem',marginLeft:'-3.6rem' }}>
+              <span className="text-xl font-bold text-foreground" style={{ marginRight:'3rem',marginLeft:'-3.6rem' }}>
               {userRole !== 'admin' ? 'OnlyInternship.in' : 'Admin|OnlyInternship.in'}
               </span>
             </Link>
@@ -136,7 +136,7 @@ export default function Header({ onSearch }: HeaderProps) {
                 <Link
                   key={item.name}
                   href={item.href}
-                  className="flex items-center space-x-1 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
+                  className="flex items-center space-x-1 text-foreground hover:text-primary-600 transition-colors font-medium"
                 >
                   <span>{item.name}</span>
                 </Link>
@@ -149,14 +149,14 @@ export default function Header({ onSearch }: HeaderProps) {
               <div className="hidden lg:block">
                 <form onSubmit={handleSearch}>
                   <div className="relative">
-                    <MagnifyingGlassIcon className="absolute left-8 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <MagnifyingGlassIcon className="absolute left-8 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                     <input
                       type="text"
                       style={{ marginLeft:'1rem' }}
                       placeholder="Search internships..."
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
-                      className="w-64 pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-colors"
+                      className="w-64 pl-10 pr-4 py-2 border border-border rounded-lg bg-input text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent transition-colors"
                     />
                   </div>
                 </form>
@@ -167,7 +167,7 @@ export default function Header({ onSearch }: HeaderProps) {
                 <button 
                   onClick={() => signOut({ callbackUrl: '/auth/signin' })}
                   style={{ width:'7rem' }}
-                  className="flex items-center space-x-1 p-2 bg-red-100 dark:bg-red-900/30 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-800/40 transition-colors"
+                  className="flex items-center space-x-1 p-2 bg-red-50 text-red-600 hover:bg-red-100 transition-colors"
                 >
                   <Image src="/google.svg" alt="Google Sign Out" width={20} height={20} />
                   <span className="text-sm font-medium">Sign Out</span>
@@ -175,7 +175,7 @@ export default function Header({ onSearch }: HeaderProps) {
               ) : (
                 <button 
                   onClick={() => signIn('google')}
-                  className="flex items-center space-x-1 p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-800/40 transition-colors"
+                  className="flex items-center space-x-1 p-2 bg-blue-50 text-primary hover:bg-blue-100 transition-colors"
                 >
                   <Image src="/google.svg" alt="Google Sign In" width={20} height={20} />
                   <span className="text-sm font-medium">Sign In</span>
@@ -186,7 +186,7 @@ export default function Header({ onSearch }: HeaderProps) {
               <div className="relative">
                 <Link 
                   href="/notifications"
-                  className="p-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                  className="p-2 text-foreground hover:text-primary transition-colors"
                 >
                   <BellIcon className="w-5 h-5" />
                 </Link>
@@ -201,7 +201,7 @@ export default function Header({ onSearch }: HeaderProps) {
               <div className="hidden md:flex items-center space-x-2">
                 <Link
                   href="/profile"
-                  className="flex items-center space-x-2 px-4 py-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                  className="flex items-center space-x-2 px-4 py-2 text-foreground hover:text-primary transition-colors"
                 >
                   <UserCircleIcon className="w-5 h-5" />
                   <span className="font-medium">Profile</span>
@@ -212,7 +212,7 @@ export default function Header({ onSearch }: HeaderProps) {
               {/* Mobile menu button */}
               <button
                 onClick={() => setIsMenuOpen(!isMenuOpen)}
-                className="md:hidden p-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors"
+                className="md:hidden p-2 text-foreground hover:text-primary transition-colors"
               >
                 {isMenuOpen ? (
                   <XMarkIcon className="w-6 h-6" />
@@ -227,13 +227,13 @@ export default function Header({ onSearch }: HeaderProps) {
           <div className="lg:hidden pb-4">
             <form onSubmit={handleSearch}>
               <div className="relative">
-                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
                 <input
                   type="text"
                   placeholder="Search internships..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2 border border-border rounded-lg bg-input text-foreground placeholder-muted-foreground focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
               </div>
             </form>
@@ -247,23 +247,23 @@ export default function Header({ onSearch }: HeaderProps) {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              className="md:hidden bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700"
+              className="md:hidden bg-secondary border-t border-border"
             >
               <div className="px-4 py-4 space-y-4">
                 {nav.map((item) => (
                   <Link
                     key={item.name}
                     href={item.href}
-                    className="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
+                    className="flex items-center space-x-2 text-foreground hover:text-primary transition-colors font-medium"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     <span>{item.name}</span>
                   </Link>
                 ))}
-                <div className="pt-4 border-t border-gray-200 dark:border-gray-700 space-y-2">
+                <div className="pt-4 border-t border-border space-y-2">
                   <Link
                     href="/notifications"
-                    className="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
+                    className="flex items-center space-x-2 text-foreground hover:text-primary transition-colors font-medium"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     <BellIcon className="w-4 h-4" />
@@ -277,7 +277,7 @@ export default function Header({ onSearch }: HeaderProps) {
                   
                   <Link
                     href="/profile"
-                    className="block text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
+                    className="block text-foreground hover:text-primary transition-colors font-medium"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Profile
@@ -285,7 +285,7 @@ export default function Header({ onSearch }: HeaderProps) {
                   
                   {session ? (
                     <button
-                      className="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
+                      className="flex items-center space-x-2 text-foreground hover:text-primary transition-colors font-medium"
                       onClick={() => {
                         setIsMenuOpen(false);
                         signOut({ callbackUrl: '/auth/signin' });
@@ -296,7 +296,7 @@ export default function Header({ onSearch }: HeaderProps) {
                     </button>
                   ) : (
                     <button
-                      className="flex items-center space-x-2 text-gray-700 dark:text-gray-300 hover:text-primary-600 dark:hover:text-primary-400 transition-colors font-medium"
+                      className="flex items-center space-x-2 text-foreground hover:text-primary transition-colors font-medium"
                       onClick={() => {
                         setIsMenuOpen(false);
                         signIn('google');
