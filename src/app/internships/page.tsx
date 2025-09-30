@@ -15,6 +15,7 @@ import {
 } from '@heroicons/react/24/outline';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
+import NeonCard from '@/components/NeonCard';
 
 interface Internship {
   id: string;
@@ -335,7 +336,7 @@ export default function InternshipsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900" style={{backgroundColor: 'white'}}>
       <Header />
       
       <div className="pt-20 pb-8">
@@ -427,12 +428,9 @@ export default function InternshipsPage() {
           {/* Internships Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {filteredInternships.map((internship, index) => (
-              <motion.div
+              <NeonCard
                 key={internship.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
-                className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
+                delay={index * 0.1}
               >
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex-1">
@@ -535,7 +533,7 @@ export default function InternshipsPage() {
                     </div>
                   )}
                 </div>
-              </motion.div>
+              </NeonCard>
             ))}
           </div>
 
@@ -553,71 +551,6 @@ export default function InternshipsPage() {
           )}
         </div>
       </div>
-
-      {/* Application Modal */}
-      {applicationModal.isOpen && applicationModal.internship && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white">
-                Apply for {applicationModal.internship.title}
-              </h3>
-              <button onClick={() => setApplicationModal({ ...applicationModal, isOpen: false })}>
-                <XMarkIcon className="w-6 h-6 text-gray-500 dark:text-gray-400" />
-              </button>
-            </div>
-
-            <form onSubmit={(e) => {
-              e.preventDefault();
-              const formData = new FormData(e.currentTarget);
-              const coverLetter = formData.get('coverLetter') as string;
-              const resumeUrl = formData.get('resumeUrl') as string;
-
-              if (!coverLetter) {
-                alert('Cover letter is required.');
-                return;
-              }
-
-              handleApply({ coverLetter, resumeUrl });
-            }} className="space-y-4">
-              <div>
-                <label htmlFor="coverLetter" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Cover Letter
-                </label>
-                <textarea
-                  id="coverLetter"
-                  name="coverLetter"
-                  rows={4}
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                  placeholder="Tell us why you're the perfect candidate for this role..."
-                  required
-                ></textarea>
-              </div>
-              <div>
-                <label htmlFor="resumeUrl" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Resume URL (optional)
-                </label>
-                <input
-                  type="url"
-                  id="resumeUrl"
-                  name="resumeUrl"
-                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-transparent dark:bg-gray-700 dark:text-white"
-                  placeholder="https://example.com/resume.pdf"
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={applying}
-                className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
-              >
-                {applying ? 'Applying...' : 'Submit Application'}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      <Footer />
     </div>
   );
 }

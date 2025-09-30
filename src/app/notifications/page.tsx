@@ -12,6 +12,7 @@ import {
   TrashIcon
 } from '@heroicons/react/24/outline';
 import Header from '@/components/Header';
+import NeonCard from '@/components/NeonCard';
 
 interface Notification {
   id: string;
@@ -191,7 +192,7 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900" style={{backgroundColor: 'white'}}>
       <Header />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
         <h1 className="text-4xl font-extrabold text-gray-900 dark:text-white mb-10 text-center tracking-tight">Notifications</h1>
@@ -242,9 +243,8 @@ export default function NotificationsPage() {
             </div>
           ) : (
             notifications.map((notification) => (
-              <div
+              <NeonCard
                 key={notification.id}
-                className={`rounded-xl p-6 border transition-all duration-200 ${getNotificationColor(notification.type, notification.read)}`}
               >
                 <div className="flex items-start space-x-4">
                   <div className="flex-shrink-0">
@@ -290,7 +290,7 @@ export default function NotificationsPage() {
                     </div>
                   )}
                 </div>
-              </div>
+              </NeonCard>
             ))
           )}
         </div>

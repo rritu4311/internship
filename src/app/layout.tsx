@@ -36,6 +36,9 @@ export const metadata: Metadata = {
 
 // Import the server component for database initialization
 import DbInitializer from './db-init';
+import Footer from "@/components/Footer";
+
+// import Footer from '@/components/Footer';
 
 export default function RootLayout({
   children,
@@ -54,6 +57,7 @@ export default function RootLayout({
             {children}
           </ThemeProvider>
         </NextAuthProvider>
+        <Footer />
       </body>
     </html>
   );

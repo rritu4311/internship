@@ -15,6 +15,7 @@ import {
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import Link from 'next/link';
+import NeonCard from '@/components/NeonCard';
 
 interface Company {
   id: string;
@@ -121,7 +122,9 @@ export default function CompaniesPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 relative" style={{backgroundColor: 'white'}}>
+        {/* Top shadow */}
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent shadow-sm z-10"></div>
         <Header />
         <div className="pt-20 pb-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -131,14 +134,15 @@ export default function CompaniesPage() {
             </div>
           </div>
         </div>
-        <Footer />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 relative" style={{backgroundColor: 'white'}}>
+        {/* Top shadow */}
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent shadow-sm z-10"></div>
         <Header />
         <div className="pt-20 pb-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -159,13 +163,14 @@ export default function CompaniesPage() {
             </div>
           </div>
         </div>
-        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 relative" style={{backgroundColor: 'white'}}>
+      {/* Top shadow */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent shadow-sm z-10"></div>
       <Header />
       
       <div className="pt-20 pb-8">
@@ -243,12 +248,9 @@ export default function CompaniesPage() {
           {/* Companies Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {filteredCompanies.map((company, index) => (
-              <motion.div
+              <NeonCard
                 key={company.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
-                className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow"
+                delay={index * 0.1}
               >
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex-1">
@@ -311,7 +313,7 @@ export default function CompaniesPage() {
                   </div>
                   <Link href={`/internships?company=${company.id}`} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">View Internships</Link>
                 </div>
-              </motion.div>
+              </NeonCard>
             ))}
           </div>
 
@@ -329,8 +331,6 @@ export default function CompaniesPage() {
           )}
         </div>
       </div>
-
-      <Footer />
     </div>
   );
 }

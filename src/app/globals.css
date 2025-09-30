@@ -392,6 +392,83 @@ input:focus, textarea:focus, select:focus {
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15), 0 2px 4px rgba(37, 99, 235, 0.1);
 }
 
-.shadow-key {
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1), 0 1px 0 rgba(255, 255, 255, 0.2);
+/* Neon Card Animations */
+@keyframes neon-scan-horizontal {
+  0% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  10%, 90% {
+    transform: translateX(0%);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes neon-scan-horizontal-reverse {
+  0% {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  10%, 90% {
+    transform: translateX(0%);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+}
+
+@keyframes neon-scan-vertical {
+  0% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  10%, 90% {
+    transform: translateY(0%);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+}
+
+@keyframes neon-scan-vertical-reverse {
+  0% {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  10%, 90% {
+    transform: translateY(0%);
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+}
+
+/* Neon Card Utility Classes */
+.neon-border-top {
+  animation: neon-scan-horizontal 3s ease-in-out infinite;
+}
+
+.neon-border-right {
+  animation: neon-scan-vertical 3s ease-in-out infinite;
+  animation-delay: 0.75s;
+}
+
+.neon-border-bottom {
+  animation: neon-scan-horizontal-reverse 3s ease-in-out infinite;
+  animation-delay: 1.5s;
+}
+
+.neon-border-left {
+  animation: neon-scan-vertical-reverse 3s ease-in-out infinite;
+  animation-delay: 2.25s;
 }

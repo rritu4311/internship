@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+// import { motion } from 'framer-motion';
 import { 
   UserCircleIcon,
   BookmarkIcon,
@@ -24,6 +24,7 @@ import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import ProfileForm from '@/components/ProfileForm';
+import NeonCard from '@/components/NeonCard';
 
 interface Application {
   id: string;
@@ -261,13 +262,7 @@ export default function DashboardPage() {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: index * 0.1 }}
-            className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700"
-          >
+          <NeonCard key={stat.label} delay={index * 0.1}>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-gray-600 dark:text-gray-400">{stat.label}</p>
@@ -277,12 +272,12 @@ export default function DashboardPage() {
                 <stat.icon className="w-8 h-8" />
               </div>
             </div>
-          </motion.div>
+          </NeonCard>
         ))}
       </div>
 
       {/* Recent Applications */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+      <NeonCard>
         <div className="p-6 border-b border-gray-200 dark:border-gray-700">
           <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Recent Applications</h3>
         </div>
@@ -309,7 +304,7 @@ export default function DashboardPage() {
             </a>
           </div>
         </div>
-      </div>
+      </NeonCard>
     </div>
   );
 
@@ -335,11 +330,9 @@ export default function DashboardPage() {
         </div>
       ) : (
         applications.map((application) => (
-        <motion.div
+        <NeonCard
           key={application.id}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700"
+          delay={0.1}
         >
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">
@@ -376,7 +369,7 @@ export default function DashboardPage() {
               </button>
             )}
           </div>
-        </motion.div>
+        </NeonCard>
         ))
       )}
     </div>
@@ -390,17 +383,17 @@ export default function DashboardPage() {
       </div>
       {(userData as any)?.companies && (userData as any).companies.length > 0 ? (
         (userData as any).companies.map((c: any) => (
-          <div key={c.id} className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+          <NeonCard key={c.id}>
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">{c.name}</h3>
             <p className="text-gray-600 dark:text-gray-400 mb-2">{c.description}</p>
             <p className="text-sm text-gray-500 dark:text-gray-500">{c.location} • {c.industry}</p>
-          </div>
+          </NeonCard>
         ))
       ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+        <NeonCard>
           <p className="mb-4 text-gray-600 dark:text-gray-400">You do not have a company yet.</p>
           <a href="/dashboard/company/new" className="px-4 py-2 bg-primary-600 text-white rounded-lg">Register Company</a>
-        </div>
+        </NeonCard>
       )}
     </div>
   );
@@ -412,7 +405,7 @@ export default function DashboardPage() {
         <a href="/dashboard/internships/new" className="px-3 py-2 bg-primary-600 text-white rounded-md">Add Internship</a>
       </div>
       {(userData?.internships || []).map((i: any) => (
-        <div key={i.id} className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+        <NeonCard key={i.id}>
           <div className="flex justify-between items-center">
             <div>
               <h4 className="font-semibold text-gray-900 dark:text-white">{i.title}</h4>
@@ -422,7 +415,7 @@ export default function DashboardPage() {
               <span className="text-sm text-gray-500 dark:text-gray-500">{new Date(i.createdAt).toLocaleDateString()}</span>
             )}
           </div>
-        </div>
+        </NeonCard>
       ))}
     </div>
   );
@@ -460,7 +453,7 @@ export default function DashboardPage() {
           onCancel={() => setIsEditingProfile(false)}
         />
       ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+        <NeonCard>
           <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
             <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Profile Information</h3>
             <button
@@ -542,7 +535,7 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-        </div>
+        </NeonCard>
       )}
     </div>
   );
@@ -550,7 +543,9 @@ export default function DashboardPage() {
   // Loading state
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 relative" style={{backgroundColor: 'white'}}>
+        {/* Top shadow */}
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent shadow-sm z-10"></div>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-500 mx-auto"></div>
           <p className="mt-4 text-gray-600 dark:text-gray-300">Loading your dashboard...</p>
@@ -562,7 +557,9 @@ export default function DashboardPage() {
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 relative" style={{backgroundColor: 'white'}}>
+        {/* Top shadow */}
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent shadow-sm z-10"></div>
         <div className="text-center max-w-md mx-auto p-6 bg-white dark:bg-gray-800 rounded-lg shadow-lg">
           <XCircleIcon className="h-12 w-12 text-red-500 mx-auto" />
           <h2 className="text-xl font-semibold mt-4 text-gray-800 dark:text-white">Error Loading Dashboard</h2>
@@ -579,7 +576,9 @@ export default function DashboardPage() {
   }
   
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 relative" style={{backgroundColor: 'white'}}>
+      {/* Top shadow */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent shadow-sm z-10"></div>
       <Header />
       
       <div className="pt-20 pb-8">
@@ -644,8 +643,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-
-      <Footer />
     </div>
   );
 }

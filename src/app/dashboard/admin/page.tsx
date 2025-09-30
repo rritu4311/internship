@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import NeonCard from '@/components/NeonCard';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import {
@@ -131,7 +132,9 @@ export default function AdminDashboardPage() {
 
   if (loading || roleLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 relative" style={{backgroundColor: 'white'}}>
+        {/* Top shadow */}
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent shadow-sm z-10"></div>
         <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
       </div>
     );
@@ -140,7 +143,9 @@ export default function AdminDashboardPage() {
   // Check if user is admin or superadmin
   if (!roleLoading && userRole !== 'admin' && userRole !== 'superadmin') {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 relative" style={{backgroundColor: 'white'}}>
+        {/* Top shadow */}
+        <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent shadow-sm z-10"></div>
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Access Denied</h1>
           <p className="text-gray-600 dark:text-gray-400 mb-4">Only admins can access this page.</p>
@@ -167,7 +172,9 @@ export default function AdminDashboardPage() {
   });
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 relative" style={{backgroundColor: 'white'}}>
+      {/* Top shadow */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent shadow-sm z-10"></div>
       <Header />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
         {/* Header */}
@@ -181,14 +188,14 @@ export default function AdminDashboardPage() {
         </div>
 
         {/* Filters */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 mb-6 border border-gray-200 dark:border-gray-700">
+        <NeonCard>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Company</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Company</label>
               <select
                 value={companyFilter}
                 onChange={(e) => { setCompanyFilter(e.target.value); setInternshipFilter(''); }}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-[#F3F4F6] dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               >
                 <option value="">All Companies</option>
                 {companies.map(c => (
@@ -197,11 +204,11 @@ export default function AdminDashboardPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Internship</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Internship</label>
               <select
                 value={internshipFilter}
                 onChange={(e) => setInternshipFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-[#F3F4F6] dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               >
                 <option value="">All Internships</option>
                 {internships
@@ -212,11 +219,11 @@ export default function AdminDashboardPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Status</label>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-[#F3F4F6] dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               >
                 <option value="all">All</option>
                 <option value="applied">Applied</option>
@@ -235,73 +242,83 @@ export default function AdminDashboardPage() {
               </button>
             </div>
           </div>
-        </div>
+        </NeonCard>
 
         {/* Status Overview Cards (clickable) */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-          <button onClick={() => setStatusFilter(statusFilter === 'applied' ? 'all' : 'applied')} className={`text-left bg-white dark:bg-gray-800 rounded-xl p-6 border ${statusFilter==='applied' ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-800' : 'border-gray-200 dark:border-gray-700'}`}>
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                <ClockIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+          <button onClick={() => setStatusFilter(statusFilter === 'applied' ? 'all' : 'applied')} className={`text-left rounded-xl p-6 border ${statusFilter==='applied' ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-800' : 'border-gray-200 dark:border-gray-700'}`}>
+            <NeonCard>
+              <div className="flex items-center">
+                <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
+                  <ClockIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Applied</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{statusCounts.applied}</p>
+                </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Applied</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{statusCounts.applied}</p>
-              </div>
-            </div>
+            </NeonCard>
           </button>
 
-          <button onClick={() => setStatusFilter(statusFilter === 'shortlisted' ? 'all' : 'shortlisted')} className={`text-left bg-white dark:bg-gray-800 rounded-xl p-6 border ${statusFilter==='shortlisted' ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-800' : 'border-gray-200 dark:border-gray-700'}`}>
-            <div className="flex items-center">
-              <div className="p-2 bg-yellow-100 dark:bg-yellow-900 rounded-lg">
-                <StarIcon className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+          <button onClick={() => setStatusFilter(statusFilter === 'shortlisted' ? 'all' : 'shortlisted')} className={`text-left rounded-xl p-6 border ${statusFilter==='shortlisted' ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-800' : 'border-gray-200 dark:border-gray-700'}`}>
+            <NeonCard>
+              <div className="flex items-center">
+                <div className="p-2 bg-yellow-100 dark:bg-yellow-900 rounded-lg">
+                  <StarIcon className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Shortlisted</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{statusCounts.shortlisted}</p>
+                </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Shortlisted</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{statusCounts.shortlisted}</p>
-              </div>
-            </div>
+            </NeonCard>
           </button>
 
-          <button onClick={() => setStatusFilter(statusFilter === 'interviewed' ? 'all' : 'interviewed')} className={`text-left bg-white dark:bg-gray-800 rounded-xl p-6 border ${statusFilter==='interviewed' ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-800' : 'border-gray-200 dark:border-gray-700'}`}>
-            <div className="flex items-center">
-              <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
-                <EyeIcon className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+          <button onClick={() => setStatusFilter(statusFilter === 'interviewed' ? 'all' : 'interviewed')} className={`text-left rounded-xl p-6 border ${statusFilter==='interviewed' ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-800' : 'border-gray-200 dark:border-gray-700'}`}>
+            <NeonCard>
+              <div className="flex items-center">
+                <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
+                  <EyeIcon className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Interviewed</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{statusCounts.interviewed}</p>
+                </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Interviewed</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{statusCounts.interviewed}</p>
-              </div>
-            </div>
+            </NeonCard>
           </button>
 
-          <button onClick={() => setStatusFilter(statusFilter === 'accepted' ? 'all' : 'accepted')} className={`text-left bg-white dark:bg-gray-800 rounded-xl p-6 border ${statusFilter==='accepted' ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-800' : 'border-gray-200 dark:border-gray-700'}`}>
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-                <CheckCircleIcon className="w-6 h-6 text-green-600 dark:text-green-400" />
+          <button onClick={() => setStatusFilter(statusFilter === 'accepted' ? 'all' : 'accepted')} className={`text-left rounded-xl p-6 border ${statusFilter==='accepted' ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-800' : 'border-gray-200 dark:border-gray-700'}`}>
+            <NeonCard>
+              <div className="flex items-center">
+                <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
+                  <CheckCircleIcon className="w-6 h-6 text-green-600 dark:text-green-400" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Accepted</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{statusCounts.accepted}</p>
+                </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Accepted</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{statusCounts.accepted}</p>
-              </div>
-            </div>
+            </NeonCard>
           </button>
 
-          <button onClick={() => setStatusFilter(statusFilter === 'rejected' ? 'all' : 'rejected')} className={`text-left bg-white dark:bg-gray-800 rounded-xl p-6 border ${statusFilter==='rejected' ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-800' : 'border-gray-200 dark:border-gray-700'}`}>
-            <div className="flex items-center">
-              <div className="p-2 bg-red-100 dark:bg-red-900 rounded-lg">
-                <XCircleIcon className="w-6 h-6 text-red-600 dark:text-red-400" />
+          <button onClick={() => setStatusFilter(statusFilter === 'rejected' ? 'all' : 'rejected')} className={`text-left rounded-xl p-6 border ${statusFilter==='rejected' ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-800' : 'border-gray-200 dark:border-gray-700'}`}>
+            <NeonCard>
+              <div className="flex items-center">
+                <div className="p-2 bg-red-100 dark:bg-red-900 rounded-lg">
+                  <XCircleIcon className="w-6 h-6 text-red-600 dark:text-red-400" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Rejected</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{statusCounts.rejected}</p>
+                </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Rejected</p>
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">{statusCounts.rejected}</p>
-              </div>
-            </div>
+            </NeonCard>
           </button>
         </div>
 
         {/* Applications List */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+        <NeonCard>
           <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
             <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
               Applications ({filteredApplications.length})
@@ -325,7 +342,7 @@ export default function AdminDashboardPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
                       <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
-                        {application.user.image ? (
+                        {application.user?.image ? (
                           <img
                             src={application.user.image}
                             alt={application.user.name}
@@ -339,10 +356,10 @@ export default function AdminDashboardPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2">
                           <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">
-                            {application.user.name}
+                            {application.user?.name || 'Unknown User'}
                           </h3>
                           <span className="text-sm text-gray-500 dark:text-gray-400">
-                            {application.user.email}
+                            {application.user?.email || 'No email'}
                           </span>
                         </div>
                         <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -382,9 +399,8 @@ export default function AdminDashboardPage() {
               ))
             )}
           </div>
-        </div>
+        </NeonCard>
       </div>
-      <Footer />
     </div>
   );
 }
