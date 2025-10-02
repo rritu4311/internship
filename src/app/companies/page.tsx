@@ -186,7 +186,7 @@ export default function CompaniesPage() {
           </div>
 
           {/* Search and Filters */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 mb-8 shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="bg-black dark:bg-gray-200 rounded-xl p-6 mb-8 shadow-sm border border-gray-800 dark:border-gray-200">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {/* Search */}
               <div className="relative">
@@ -231,7 +231,7 @@ export default function CompaniesPage() {
                   setSelectedIndustry('');
                   setSelectedLocation('');
                 }}
-                className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                className="px-4 py-2 bg-gray-180 dark:bg-gray-800 text-white dark:text-white rounded-lg hover:bg-gray-800 dark:hover:bg-gray-150 transition-colors"
               >
                 Clear Filters
               </button>

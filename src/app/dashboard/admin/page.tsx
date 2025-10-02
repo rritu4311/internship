@@ -147,8 +147,8 @@ export default function AdminDashboardPage() {
         {/* Top shadow */}
         <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent shadow-sm z-10"></div>
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Access Denied</h1>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">Only admins can access this page.</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h1>
+          <p className="text-gray-600 mb-4">Only admins can access this page.</p>
           <a
             href="/dashboard"
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -179,10 +179,10 @@ export default function AdminDashboardPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-24">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">
             Admin Dashboard
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
+          <p className="text-gray-600">
             Manage internship applications and track their progress
           </p>
         </div>
@@ -191,11 +191,11 @@ export default function AdminDashboardPage() {
         <NeonCard>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Company</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Company</label>
               <select
                 value={companyFilter}
                 onChange={(e) => { setCompanyFilter(e.target.value); setInternshipFilter(''); }}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-[#F3F4F6] dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
               >
                 <option value="">All Companies</option>
                 {companies.map(c => (
@@ -204,11 +204,11 @@ export default function AdminDashboardPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Internship</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Internship</label>
               <select
                 value={internshipFilter}
                 onChange={(e) => setInternshipFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-[#F3F4F6] dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
               >
                 <option value="">All Internships</option>
                 {internships
@@ -219,11 +219,11 @@ export default function AdminDashboardPage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Status</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-[#F3F4F6] dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900"
               >
                 <option value="all">All</option>
                 <option value="applied">Applied</option>
@@ -246,71 +246,71 @@ export default function AdminDashboardPage() {
 
         {/* Status Overview Cards (clickable) */}
         <div className="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-          <button onClick={() => setStatusFilter(statusFilter === 'applied' ? 'all' : 'applied')} className={`text-left rounded-xl p-6 border ${statusFilter==='applied' ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-800' : 'border-gray-200 dark:border-gray-700'}`}>
+          <button onClick={() => setStatusFilter(statusFilter === 'applied' ? 'all' : 'applied')} className={`text-left rounded-xl p-6 border ${statusFilter==='applied' ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200'}`}>
             <NeonCard>
               <div className="flex items-center">
-                <div className="p-2 bg-blue-100 dark:bg-blue-900 rounded-lg">
-                  <ClockIcon className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <ClockIcon className="w-6 h-6 text-blue-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Applied</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{statusCounts.applied}</p>
+                  <p className="text-sm font-medium text-gray-600">Applied</p>
+                  <p className="text-2xl font-bold text-gray-900">{statusCounts.applied}</p>
                 </div>
               </div>
             </NeonCard>
           </button>
 
-          <button onClick={() => setStatusFilter(statusFilter === 'shortlisted' ? 'all' : 'shortlisted')} className={`text-left rounded-xl p-6 border ${statusFilter==='shortlisted' ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-800' : 'border-gray-200 dark:border-gray-700'}`}>
+          <button onClick={() => setStatusFilter(statusFilter === 'shortlisted' ? 'all' : 'shortlisted')} className={`text-left rounded-xl p-6 border ${statusFilter==='shortlisted' ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200'}`}>
             <NeonCard>
               <div className="flex items-center">
-                <div className="p-2 bg-yellow-100 dark:bg-yellow-900 rounded-lg">
-                  <StarIcon className="w-6 h-6 text-yellow-600 dark:text-yellow-400" />
+                <div className="p-2 bg-yellow-100 rounded-lg">
+                  <StarIcon className="w-6 h-6 text-yellow-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Shortlisted</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{statusCounts.shortlisted}</p>
+                  <p className="text-sm font-medium text-gray-600">Shortlisted</p>
+                  <p className="text-2xl font-bold text-gray-900">{statusCounts.shortlisted}</p>
                 </div>
               </div>
             </NeonCard>
           </button>
 
-          <button onClick={() => setStatusFilter(statusFilter === 'interviewed' ? 'all' : 'interviewed')} className={`text-left rounded-xl p-6 border ${statusFilter==='interviewed' ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-800' : 'border-gray-200 dark:border-gray-700'}`}>
+          <button onClick={() => setStatusFilter(statusFilter === 'interviewed' ? 'all' : 'interviewed')} className={`text-left rounded-xl p-6 border ${statusFilter==='interviewed' ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200'}`}>
             <NeonCard>
               <div className="flex items-center">
-                <div className="p-2 bg-purple-100 dark:bg-purple-900 rounded-lg">
-                  <EyeIcon className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <EyeIcon className="w-6 h-6 text-purple-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Interviewed</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{statusCounts.interviewed}</p>
+                  <p className="text-sm font-medium text-gray-600">Interviewed</p>
+                  <p className="text-2xl font-bold text-gray-900">{statusCounts.interviewed}</p>
                 </div>
               </div>
             </NeonCard>
           </button>
 
-          <button onClick={() => setStatusFilter(statusFilter === 'accepted' ? 'all' : 'accepted')} className={`text-left rounded-xl p-6 border ${statusFilter==='accepted' ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-800' : 'border-gray-200 dark:border-gray-700'}`}>
+          <button onClick={() => setStatusFilter(statusFilter === 'accepted' ? 'all' : 'accepted')} className={`text-left rounded-xl p-6 border ${statusFilter==='accepted' ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200'}`}>
             <NeonCard>
               <div className="flex items-center">
-                <div className="p-2 bg-green-100 dark:bg-green-900 rounded-lg">
-                  <CheckCircleIcon className="w-6 h-6 text-green-600 dark:text-green-400" />
+                <div className="p-2 bg-green-100 rounded-lg">
+                  <CheckCircleIcon className="w-6 h-6 text-green-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Accepted</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{statusCounts.accepted}</p>
+                  <p className="text-sm font-medium text-gray-600">Accepted</p>
+                  <p className="text-2xl font-bold text-gray-900">{statusCounts.accepted}</p>
                 </div>
               </div>
             </NeonCard>
           </button>
 
-          <button onClick={() => setStatusFilter(statusFilter === 'rejected' ? 'all' : 'rejected')} className={`text-left rounded-xl p-6 border ${statusFilter==='rejected' ? 'border-indigo-500 ring-2 ring-indigo-200 dark:ring-indigo-800' : 'border-gray-200 dark:border-gray-700'}`}>
+          <button onClick={() => setStatusFilter(statusFilter === 'rejected' ? 'all' : 'rejected')} className={`text-left rounded-xl p-6 border ${statusFilter==='rejected' ? 'border-indigo-500 ring-2 ring-indigo-200' : 'border-gray-200'}`}>
             <NeonCard>
               <div className="flex items-center">
-                <div className="p-2 bg-red-100 dark:bg-red-900 rounded-lg">
-                  <XCircleIcon className="w-6 h-6 text-red-600 dark:text-red-400" />
+                <div className="p-2 bg-red-100 rounded-lg">
+                  <XCircleIcon className="w-6 h-6 text-red-600" />
                 </div>
                 <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Rejected</p>
-                  <p className="text-2xl font-bold text-gray-900 dark:text-white">{statusCounts.rejected}</p>
+                  <p className="text-sm font-medium text-gray-600">Rejected</p>
+                  <p className="text-2xl font-bold text-gray-900">{statusCounts.rejected}</p>
                 </div>
               </div>
             </NeonCard>
@@ -319,29 +319,28 @@ export default function AdminDashboardPage() {
 
         {/* Applications List */}
         <NeonCard>
-          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h2 className="text-xl font-semibold text-gray-900">
               Applications ({filteredApplications.length})
             </h2>
           </div>
-
-          <div className="divide-y divide-gray-200 dark:divide-gray-700">
+          <div className="divide-y divide-gray-200">
             {filteredApplications.length === 0 ? (
               <div className="px-6 py-12 text-center">
                 <BriefcaseIcon className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
                   No applications yet
                 </h3>
-                <p className="text-gray-600 dark:text-gray-400">
+                <p className="text-gray-600">
                   Applications will appear here when students start applying.
                 </p>
               </div>
             ) : (
               filteredApplications.map((application) => (
-                <div key={application.id} className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                <div key={application.id} className="px-6 py-4 hover:bg-gray-50">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
-                      <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                      <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
                         {application.user?.image ? (
                           <img
                             src={application.user.image}
@@ -355,17 +354,17 @@ export default function AdminDashboardPage() {
                       
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center space-x-2">
-                          <h3 className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                          <h3 className="text-sm font-medium text-gray-900 truncate">
                             {application.user?.name || 'Unknown User'}
                           </h3>
-                          <span className="text-sm text-gray-500 dark:text-gray-400">
+                          <span className="text-sm text-gray-500">
                             {application.user?.email || 'No email'}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                        <p className="text-sm text-gray-600">
                           {application.internshipTitle} at {application.company}
                         </p>
-                        <div className="flex items-center space-x-4 text-xs text-gray-500 dark:text-gray-500 mt-1">
+                        <div className="flex items-center space-x-4 text-xs text-gray-500 mt-1">
                           <span className="flex items-center">
                             <CalendarIcon className="w-3 h-3 mr-1" />
                             Applied: {new Date(application.appliedDate).toLocaleDateString()}

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import Header from '@/components/Header';
 import { useSession } from 'next-auth/react';
 import { 
   ArrowLeftIcon, 
@@ -187,7 +188,7 @@ export default function ApplicationDetailsPage() {
 
   if (status === 'loading' || loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen" style={{backgroundColor: 'white'}}>
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
       </div>
     );
@@ -195,7 +196,7 @@ export default function ApplicationDetailsPage() {
 
   if (!session?.user) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
+      <div className="flex items-center justify-center min-h-screen" style={{backgroundColor: 'white'}}>
         <p>Redirecting to login...</p>
       </div>
     );
@@ -203,7 +204,7 @@ export default function ApplicationDetailsPage() {
   
   if (!application) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center" style={{backgroundColor: 'white'}}>
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Application Not Found</h1>
           <button
@@ -224,7 +225,7 @@ export default function ApplicationDetailsPage() {
   
   if (!isAdmin && !isOwner) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center" style={{backgroundColor: 'white'}}>
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Access Denied</h1>
           <p className="text-gray-600 dark:text-gray-400 mb-4">
@@ -271,18 +272,19 @@ export default function ApplicationDetailsPage() {
   const availableActions = getAvailableActions(application.status);
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900" style={{backgroundColor: 'white'}}>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <button
+        <Header />
+        <div className="mt-10">
+          {/* <button
             onClick={() => router.back()}
             className="flex items-center text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white mb-4"
           >
             <ArrowLeftIcon className="w-5 h-5 mr-2" />
             Back to Applications
           </button>
-          
+           */}
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
@@ -314,19 +316,18 @@ export default function ApplicationDetailsPage() {
             </div>
           </div>
         </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Applicant Information */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
+            <div className="bg-white/90 backdrop-blur-sm rounded-xl p-6 border-2 border-cyan-400/50 shadow-lg shadow-cyan-400/20 hover:shadow-cyan-400/30 transition-all duration-300">
               <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
                 <UserIcon className="w-5 h-5 mr-2" />
                 Applicant Information
               </h2>
               
               <div className="flex items-start space-x-4">
-                <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded-full flex items-center justify-center">
+                <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center">
                   {application.user.image ? (
                     <img
                       src={application.user.image}
@@ -339,10 +340,10 @@ export default function ApplicationDetailsPage() {
                 </div>
                 
                 <div className="flex-1">
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                  <h3 className="text-lg font-medium text-gray-900">
                     {application.user.name}
                   </h3>
-                  <p className="text-gray-600 dark:text-gray-400">
+                  <p className="text-gray-600">
                     {application.user.email}
                   </p>
                 </div>
@@ -350,14 +351,14 @@ export default function ApplicationDetailsPage() {
             </div>
 
             {/* Cover Letter */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+            <div className="bg-white/90 backdrop-blur-sm rounded-xl p-6 border-2 border-cyan-400/50 shadow-lg shadow-cyan-400/20 hover:shadow-cyan-400/30 transition-all duration-300">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
                 <DocumentTextIcon className="w-5 h-5 mr-2" />
                 Cover Letter
               </h2>
               
-              <div className="prose dark:prose-invert max-w-none">
-                <p className="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+              <div className="prose max-w-none">
+                <p className="text-gray-700 whitespace-pre-wrap">
                   {application.coverLetter || 'No cover letter provided.'}
                 </p>
               </div>
@@ -365,15 +366,15 @@ export default function ApplicationDetailsPage() {
 
             {/* Resume */}
             {application.resumeUrl && (
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+              <div className="bg-white/90 backdrop-blur-sm rounded-xl p-6 border-2 border-cyan-400/50 shadow-lg shadow-cyan-400/20 hover:shadow-cyan-400/30 transition-all duration-300">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
                   <DocumentTextIcon className="w-5 h-5 mr-2" />
                   Resume
                 </h2>
                 
                 <div className="flex items-center space-x-4">
                   <div className="flex-1">
-                    <p className="text-gray-600 dark:text-gray-400 mb-2">Resume Document</p>
+                    <p className="text-gray-600 mb-2">Resume Document</p>
                     <a
                       href={application.resumeUrl}
                       target="_blank"
@@ -392,23 +393,23 @@ export default function ApplicationDetailsPage() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Application Timeline */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+            <div className="bg-white/90 backdrop-blur-sm rounded-xl p-6 border-2 border-cyan-400/50 shadow-lg shadow-cyan-400/20 hover:shadow-cyan-400/30 transition-all duration-300">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
                 <CalendarIcon className="w-5 h-5 mr-2" />
                 Timeline
               </h2>
               
               <div className="space-y-4">
                 <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">Applied</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm font-medium text-gray-900">Applied</p>
+                  <p className="text-sm text-gray-600">
                     {new Date(application.appliedDate).toLocaleDateString()} at {new Date(application.appliedDate).toLocaleTimeString()}
                   </p>
                 </div>
                 
                 <div>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">Last Updated</p>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                  <p className="text-sm font-medium text-gray-900">Last Updated</p>
+                  <p className="text-sm text-gray-600">
                     {new Date(application.lastUpdated).toLocaleDateString()} at {new Date(application.lastUpdated).toLocaleTimeString()}
                   </p>
                 </div>
@@ -417,8 +418,8 @@ export default function ApplicationDetailsPage() {
 
             {/* Application Actions - visible to admins only */}
             {isAdmin && availableActions.length > 0 && (
-              <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4 flex items-center">
+              <div className="bg-white/90 backdrop-blur-sm rounded-xl p-6 border-2 border-cyan-400/50 shadow-lg shadow-cyan-400/20 hover:shadow-cyan-400/30 transition-all duration-300">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
                   <BriefcaseIcon className="w-5 h-5 mr-2" />
                   Actions
                 </h2>
@@ -439,30 +440,30 @@ export default function ApplicationDetailsPage() {
             )}
 
             {/* Status Information */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+            <div className="bg-white/90 backdrop-blur-sm rounded-xl p-6 border-2 border-cyan-400/50 shadow-lg shadow-cyan-400/20 hover:shadow-cyan-400/30 transition-all duration-300">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">
                 Status Information
               </h2>
               
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Current Status</span>
+                  <span className="text-sm text-gray-600">Current Status</span>
                   <span className={`px-2 py-1 rounded text-xs font-medium ${getStatusColor(application.status)}`}>
                     {application.status.charAt(0).toUpperCase() + application.status.slice(1)}
                   </span>
                 </div>
                 
                 {application.status === 'accepted' && (
-                  <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                    <p className="text-sm text-green-800 dark:text-green-300">
+                  <div className="p-3 bg-green-50 rounded-lg">
+                    <p className="text-sm text-green-800">
                       This application has been accepted. The candidate is ready to join.
                     </p>
                   </div>
                 )}
                 
                 {application.status === 'rejected' && (
-                  <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                    <p className="text-sm text-red-800 dark:text-red-300">
+                  <div className="p-3 bg-red-50 rounded-lg">
+                    <p className="text-sm text-red-800">
                       This application has been rejected.
                     </p>
                   </div>
